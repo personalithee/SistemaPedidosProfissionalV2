@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -43,7 +43,7 @@
         h2 { border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 20px; }
         form { background-color: var(--secondary-color); padding: 20px; border-radius: 8px; margin-bottom: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
         .form-group { display: flex; flex-direction: column; }
-        input, select, button { padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); font-size: 14px; }
+        input, select, button, textarea { padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); font-size: 14px; } /* Adicionado textarea aqui */
         button { cursor: pointer; background-color: var(--primary-color); color: white; border: none; transition: background-color 0.3s; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
         button.add-btn { background-color: var(--success-color); }
@@ -117,6 +117,8 @@
             <form id="form-servico">
                 <div class="form-group"><label for="nome-servico">Nome do Serviço</label><input type="text" id="nome-servico" required></div>
                 <div class="form-group"><label for="valor-servico">Valor (R$)</label><input type="number" id="valor-servico" step="0.01" min="0" required></div>
+                <!-- Novo campo de Descrição para Serviços -->
+                <div class="form-group" style="grid-column: 1 / -1;"><label for="descricao-servico">Descrição</label><textarea id="descricao-servico" rows="3"></textarea></div>
                 <button type="submit" id="btn-add-servico" style="grid-column: 1 / -1;">Adicionar Serviço</button>
             </form>
             <h3>Serviços Cadastrados</h3>
@@ -129,6 +131,10 @@
                 <div class="form-group"><label for="nome-cliente">Nome do Cliente</label><input type="text" id="nome-cliente" required></div>
                 <div class="form-group"><label for="email-cliente">Email</label><input type="email" id="email-cliente"></div>
                 <div class="form-group"><label for="telefone-cliente">Telefone</label><input type="tel" id="telefone-cliente"></div>
+                <!-- Novos campos para Clientes -->
+                <div class="form-group"><label for="endereco-cliente">Endereço</label><input type="text" id="endereco-cliente"></div>
+                <div class="form-group"><label for="cnpj-cpf-cliente">CNPJ/CPF</label><input type="text" id="cnpj-cpf-cliente"></div>
+                <div class="form-group"><label for="responsavel-cliente">Responsável</label><input type="text" id="responsavel-cliente"></div>
                 <button type="submit" id="btn-add-cliente" style="grid-column: 1 / -1;">Adicionar Cliente</button>
             </form>
             <h3>Clientes Cadastrados</h3>
@@ -437,7 +443,11 @@ document.addEventListener('DOMContentLoaded', () => {
         servicosCache = data;
         listaServicos.innerHTML = data.map(servico => `
             <div class="item-card">
-                <div><strong>${servico.nome}</strong><br><span>${formatCurrency(servico.valor)}</span></div>
+                <div>
+                    <strong>${servico.nome}</strong><br>
+                    <span>${formatCurrency(servico.valor)}</span>
+                    ${servico.descricao ? `<br><small>${servico.descricao}</small>` : ''}
+                </div>
                 <button class="delete-btn" data-id="${servico.id}">Excluir</button>
             </div>
         `).join('');
@@ -450,11 +460,24 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.disabled = true;
         btn.textContent = 'Adicionando...';
 
+        const nomeServico = document.getElementById('nome-servico').value;
+        let valorServico = parseFloat(document.getElementById('valor-servico').value);
+        const descricaoServico = document.getElementById('descricao-servico').value; // Captura a descrição
+
+        // Adicionar validação para garantir que valorServico é um número válido
+        if (isNaN(valorServico)) {
+            showAlertError(null, 'O valor do serviço deve ser um número válido.');
+            btn.disabled = false;
+            btn.textContent = 'Adicionar Serviço';
+            return; // Interrompe a função se o valor não for válido
+        }
+
         // Garante que o company_id seja incluído
         const { error } = await supabaseClient.from('servicos').insert([{ 
-            nome: document.getElementById('nome-servico').value, 
-            valor: parseFloat(document.getElementById('valor-servico').value),
-            company_id: currentUserCompanyId // Adiciona o company_id
+            nome: nomeServico, 
+            valor: valorServico, 
+            descricao: descricaoServico, // Inclui a descrição
+            company_id: currentUserCompanyId 
         }]);
         if (error) showAlertError(error, 'Erro ao adicionar serviço.');
         else {
@@ -495,7 +518,13 @@ document.addEventListener('DOMContentLoaded', () => {
         clientesCache = data;
         listaClientes.innerHTML = data.map(cliente => `
             <div class="item-card">
-                <div><strong>${cliente.nome}</strong><br><small>${cliente.email || ''} | ${cliente.telefone || ''}</small></div>
+                <div>
+                    <strong>${cliente.nome}</strong><br>
+                    <small>${cliente.email || 'N/A'} | ${cliente.telefone || 'N/A'}</small>
+                    ${cliente.endereco ? `<br><small>Endereço: ${cliente.endereco}</small>` : ''}
+                    ${cliente.cnpj_cpf ? `<br><small>CNPJ/CPF: ${cliente.cnpj_cpf}</small>` : ''}
+                    ${cliente.responsavel ? `<br><small>Responsável: ${cliente.responsavel}</small>` : ''}
+                </div>
                 <button class="delete-btn" data-id="${cliente.id}">Excluir</button>
             </div>
         `).join('');
@@ -507,12 +536,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = document.getElementById('btn-add-cliente');
         btn.disabled = true;
         btn.textContent = 'Adicionando...';
+        // Captura os novos campos
+        const nomeCliente = document.getElementById('nome-cliente').value;
+        const emailCliente = document.getElementById('email-cliente').value;
+        const telefoneCliente = document.getElementById('telefone-cliente').value;
+        const enderecoCliente = document.getElementById('endereco-cliente').value;
+        const cnpjCpfCliente = document.getElementById('cnpj-cpf-cliente').value;
+        const responsavelCliente = document.getElementById('responsavel-cliente').value;
+
         // Garante que o company_id seja incluído
         const { error } = await supabaseClient.from('clientes').insert([{ 
-            nome: document.getElementById('nome-cliente').value, 
-            email: document.getElementById('email-cliente').value, 
-            telefone: document.getElementById('telefone-cliente').value,
-            company_id: currentUserCompanyId // Adiciona o company_id
+            nome: nomeCliente, 
+            email: emailCliente, 
+            telefone: telefoneCliente,
+            endereco: enderecoCliente, // Inclui o endereço
+            cnpj_cpf: cnpjCpfCliente, // Inclui o CNPJ/CPF
+            responsavel: responsavelCliente, // Inclui o responsável
+            company_id: currentUserCompanyId 
         }]);
         if (error) showAlertError(error, 'Erro ao adicionar cliente.');
         else {
@@ -552,15 +592,27 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('add-servico-pedido-btn').addEventListener('click', () => {
         const servicoId = parseInt(servicoPedidoSelect.value);
         const quantidade = parseInt(document.getElementById('quantidade-servico').value);
-        if (!servicoId || !quantidade) return alert('Selecione um serviço e a quantidade.');
+        if (!servicoId || isNaN(quantidade) || quantidade <= 0) { // Adicionado isNaN e quantidade <= 0
+            alert('Selecione um serviço e insira uma quantidade válida.');
+            return;
+        }
         const servico = servicosCache.find(s => s.id === servicoId);
         
         if (servico) {
-            servicosNoPedidoAtual.push({ ...servico, quantidade });
+            // Verifica se o serviço já está na lista e atualiza a quantidade
+            const existingServiceIndex = servicosNoPedidoAtual.findIndex(item => item.id === servicoId);
+            if (existingServiceIndex > -1) {
+                servicosNoPedidoAtual[existingServiceIndex].quantidade += quantidade;
+            } else {
+                servicosNoPedidoAtual.push({ ...servico, quantidade });
+            }
+            
             renderServicosDoPedido();
             updatePedidoTotal();
             servicoPedidoSelect.value = '';
             document.getElementById('quantidade-servico').value = '1';
+        } else {
+            alert('Serviço não encontrado no cache. Tente recarregar a página.');
         }
     });
 
@@ -1164,7 +1216,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await supabaseClient.auth.admin.deleteUser(userId);
                 console.error('Usuário de autenticação revertido devido a falha na criação do perfil.');
             } else {
-                alert(currentUserId ? 'Usuário e perfil atualizados com sucesso!' : 'Usuário e perfil criados com sucesso!');
+                alert('Usuário e perfil criados com sucesso!');
                 formUsuario.reset();
                 await renderUsuarios();
             }
