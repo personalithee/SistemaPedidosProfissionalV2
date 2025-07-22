@@ -429,7 +429,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function renderServicos() {
         showLoading(listaServicos);
         // Filtra por company_id se não for admin
-        let query = supabaseClient.from('servicos').select('*').order('nome', { ascending: true });
+        // Explicitamente seleciona as colunas para evitar problemas com o parâmetro 'columns'
+        let query = supabaseClient.from('servicos').select('id, nome, valor, descricao, company_id').order('nome', { ascending: true });
         if (currentUserRole !== 'admin' && currentUserCompanyId) {
             query = query.eq('company_id', currentUserCompanyId);
         }
@@ -592,20 +593,30 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('add-servico-pedido-btn').addEventListener('click', () => {
         const servicoId = servicoPedidoSelect.value; // Removido parseInt, agora é string (UUID)
         const quantidade = parseInt(document.getElementById('quantidade-servico').value);
+        
+        console.log('Tentando adicionar serviço ao pedido:');
+        console.log('ID do serviço selecionado:', servicoId);
+        console.log('Quantidade selecionada:', quantidade);
+        console.log('servicosCache atual:', servicosCache);
+
         if (!servicoId || isNaN(quantidade) || quantidade <= 0) { 
             alert('Selecione um serviço e insira uma quantidade válida.');
+            console.log('Validação falhou: ID do serviço ou quantidade inválida.');
             return;
         }
         // Garante que a comparação seja entre strings (UUIDs)
         const servico = servicosCache.find(s => String(s.id) === String(servicoId)); 
         
         if (servico) {
+            console.log('Serviço encontrado no cache:', servico);
             // Verifica se o serviço já está na lista e atualiza a quantidade
             const existingServiceIndex = servicosNoPedidoAtual.findIndex(item => String(item.id) === String(servicoId));
             if (existingServiceIndex > -1) {
                 servicosNoPedidoAtual[existingServiceIndex].quantidade += quantidade;
+                console.log('Quantidade do serviço existente atualizada:', servicosNoPedidoAtual[existingServiceIndex]);
             } else {
                 servicosNoPedidoAtual.push({ ...servico, quantidade });
+                console.log('Novo serviço adicionado à lista do pedido:', servicosNoPedidoAtual[servicosNoPedidoAtual.length - 1]);
             }
             
             renderServicosDoPedido();
@@ -614,6 +625,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('quantidade-servico').value = '1';
         } else {
             alert('Serviço não encontrado no cache. Tente recarregar a página.');
+            console.error('Serviço não encontrado no cache para o ID:', servicoId);
         }
     });
 
