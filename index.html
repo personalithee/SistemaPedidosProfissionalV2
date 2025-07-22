@@ -1,4 +1,4 @@
-
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -1164,7 +1164,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await supabaseClient.auth.admin.deleteUser(userId);
                 console.error('Usuário de autenticação revertido devido a falha na criação do perfil.');
             } else {
-                alert('Usuário e perfil criados com sucesso!');
+                alert(currentUserId ? 'Usuário e perfil atualizados com sucesso!' : 'Usuário e perfil criados com sucesso!');
                 formUsuario.reset();
                 await renderUsuarios();
             }
