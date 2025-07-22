@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Pedidos</title>
+    <style>
+        /* css/style.css */
+        body {
+            font-family: 'Inter', sans-serif; /* Usando Inter como padrão */
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Alinha ao topo para permitir rolagem */
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 1200px; /* Aumenta a largura máxima para um layout mais amplo */
+            margin: 20px;
+            overflow: hidden; /* Garante que o conteúdo não vaze */
+        }
+
+        header {
+            background-color: #4a90e2; /* Cor azul para o cabeçalho */
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #357bd8;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        header p {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        #logout-button {
+            background-color: #dc3545; /* Vermelho para o botão Sair */
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+
+        #logout-button:hover {
+            background-color: #c82333;
+        }
+
+        nav {
+            background-color: #5a9be2; /* Azul um pouco mais claro para a navegação */
+            padding: 10px 30px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-start; /* Alinha os botões à esquerda */
+            border-bottom: 1px solid #4a90e2;
+        }
+
+        nav button {
+            background-color: #4a90e2; /* Mesma cor do cabeçalho */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        nav button:hover {
+            background-color: #357bd8;
+            transform: translateY(-2px);
+        }
+
+        main {
+            padding: 30px;
+        }
+
+        main section {
+            margin-bottom: 40px;
+            background-color: #f8f9fa; /* Fundo leve para as seções */
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        h2 {
+            color: #333;
+            font-size: 22px;
+            margin-top: 0;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        form {
+            display: grid; /* Usando grid para melhor organização do formulário */
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Colunas responsivas */
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #e9ecef;
+            border-radius: 8px;
+        }
+
+        input[type="email"],
+        input[type="password"],
+        input[type="text"],
+        input[type="number"],
+        textarea,
+        select {
+            padding: 12px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 16px;
+            width: 100%; /* Garante que ocupem a largura total */
+            box-sizing: border-box;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            border-color: #80bdff;
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        form button[type="submit"] {
+            grid-column: 1 / -1; /* Ocupa todas as colunas no grid */
+            padding: 12px 20px;
+            background-color: #28a745; /* Verde para botões de adicionar/salvar */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        form button[type="submit"]:hover {
+            background-color: #218838;
+            transform: translateY(-1px);
+        }
+
+        h3 {
+            color: #333;
+            font-size: 20px;
+            margin-top: 30px;
+            margin-bottom: 20px;
+        }
+
+        #clientes-list, #servicos-list, #pedidos-list, #companies-list, #users-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Layout de cards */
+            gap: 20px;
+            padding: 0;
+            list-style: none;
+        }
+
+        #clientes-list li, #servicos-list li, #pedidos-list li, #companies-list li, #users-list li {
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #clientes-list li strong, #servicos-list li strong, #pedidos-list li strong, #companies-list li strong, #users-list li strong {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        #clientes-list li span, #servicos-list li span, #pedidos-list li span, #companies-list li span, #users-list li span {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+
+        #clientes-list li div, #servicos-list li div, #pedidos-list li div, #companies-list li div, #users-list li div {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: flex-end; /* Alinha botões à direita */
+        }
+
+        .edit-cliente-btn, .edit-servico-btn, .edit-pedido-btn, .edit-company-btn, .edit-user-btn {
+            background-color: #ffc107; /* Amarelo para editar */
+            color: #333;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+
+        .edit-cliente-btn:hover, .edit-servico-btn:hover, .edit-pedido-btn:hover, .edit-company-btn:hover, .edit-user-btn:hover {
+            background-color: #e0a800;
+        }
+
+        .delete-btn, .delete-servico-btn, .delete-pedido-btn, .delete-company-btn, .delete-user-btn {
+            background-color: #dc3545; /* Vermelho para excluir */
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+
+        .delete-btn:hover, .delete-servico-btn:hover, .delete-pedido-btn:hover, .delete-company-btn:hover, .delete-user-btn:hover {
+            background-color: #c82333;
+        }
+
+        .admin-only {
+            background-color: #ffeeba; /* Cor de fundo para seções de admin */
+            border: 1px dashed #ffc107;
+            padding: 25px;
+            margin-bottom: 40px;
+            border-radius: 8px;
+        }
+
+        /* Responsividade para formulários em telas pequenas */
+        @media (max-width: 768px) {
+            form {
+                grid-template-columns: 1fr; /* Uma coluna em telas pequenas */
+            }
+            #clientes-list, #servicos-list, #pedidos-list, #companies-list, #users-list {
+                grid-template-columns: 1fr; /* Uma coluna para os cards em telas pequenas */
+            }
+        }
+
+        /* Estilo para a página de login - Melhorado */
+        body.login-page {
+            background-color: #e0e5ec; /* Fundo mais suave para a página de login */
+            display: flex;
+            justify-content: center;
+            align-items: center; /* Centraliza o container verticalmente */
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        .login-page .container {
+            max-width: 450px; /* Largura menor para o formulário de login */
+            padding: 40px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15); /* Sombra mais pronunciada */
+            border-radius: 15px; /* Cantos mais arredondados */
+            text-align: center;
+            background: linear-gradient(145deg, #ffffff, #e6e6e6); /* Gradiente sutil */
+            border: none; /* Remove borda extra */
+        }
+
+        .login-page h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 30px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .login-page h2 {
+            color: #4a90e2; /* Cor principal para o título de login */
+            font-size: 24px;
+            margin-bottom: 25px;
+            border-bottom: none; /* Remove a borda inferior */
+        }
+
+        .login-page form {
+            background-color: transparent; /* Remove o fundo do formulário para o gradiente do container */
+            padding: 0;
+            box-shadow: none;
+            grid-template-columns: 1fr; /* Garante uma coluna */
+        }
+
+        .login-page input[type="email"],
+        .login-page input[type="password"] {
+            border: 1px solid #c0c0c0;
+            background-color: #f9f9f9;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.08); /* Sombra interna para profundidade */
+            border-radius: 8px; /* Cantos mais arredondados */
+        }
+
+        .login-page button[type="submit"] {
+            background: linear-gradient(145deg, #4a90e2, #357bd8); /* Gradiente para o botão */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); /* Sombra mais forte */
+            font-weight: bold;
+            letter-spacing: 1px;
+            border-radius: 8px; /* Cantos mais arredondados */
+            transition: all 0.3s ease;
+        }
+
+        .login-page button[type="submit"]:hover {
+            background: linear-gradient(145deg, #357bd8, #2a6bb2);
+            transform: translateY(-3px); /* Efeito de elevação */
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .login-page p {
+            color: #666;
+            margin-top: 25px;
+            font-size: 14px;
+        }
+
+        .login-page header, .login-page nav, .login-page main {
+            display: none; /* Oculta cabeçalho, navegação e main na página de login */
+        }
+    </style>
+</head>
+<body class="login-page">
+    <div class="container" id="app-container">
+        <!-- Conteúdo da página de login -->
+        <section id="login-section">
+            <h1>Bem-vindo ao Sistema de Pedidos!</h1>
+            <h2>Login</h2>
+            <form id="login-form">
+                <input type="email" id="login-email" placeholder="Seu e-mail" required>
+                <input type="password" id="login-password" placeholder="Sua senha" required>
+                <button type="submit">Entrar</button>
+            </form>
+            <p>Acesso restrito. Entre em contato com o administrador para criar uma conta.</p>
+        </section>
+
+        <!-- Conteúdo do Dashboard (inicialmente oculto) -->
+        <section id="dashboard-section" style="display: none;">
+            <header>
+                <h1>Bem-vindo ao Dashboard!</h1>
+                <p>Gerencie seus clientes, serviços e pedidos.</p>
+                <p>Usuário: <span id="user-email-display"></span> | Role: <span id="user-role-display"></span></p>
+                <button id="logout-button">Sair</button>
+            </header>
+
+            <nav>
+                <button id="show-clientes">Clientes</button>
+                <button id="show-servicos">Serviços</button>
+                <button id="show-pedidos">Pedidos</button>
+                <!-- Seções visíveis apenas para Administradores -->
+                <button id="show-companies" class="admin-feature" style="display: none;">Empresas</button>
+                <button id="show-users" class="admin-feature" style="display: none;">Usuários</button>
+            </nav>
+
+            <main>
+                <!-- Seção de Clientes -->
+                <section id="clientes-section" style="display: block;">
+                    <h2>Meus Clientes</h2>
+                    <form id="cliente-form">
+                        <input type="text" id="cliente-nome" placeholder="Nome do Cliente" required>
+                        <input type="email" id="cliente-email" placeholder="E-mail">
+                        <input type="text" id="cliente-telefone" placeholder="Telefone">
+                        <input type="text" id="cliente-endereco" placeholder="Endereço">
+                        <input type="text" id="cliente-cnpj-cpf" placeholder="CNPJ/CPF">
+                        <input type="text" id="cliente-responsavel" placeholder="Responsável">
+                        <button type="submit">Adicionar Cliente</button>
+                    </form>
+                    <h3>Lista de Clientes</h3>
+                    <ul id="clientes-list">
+                        <!-- Clientes serão carregados aqui -->
+                    </ul>
+                </section>
+
+                <!-- Seção de Serviços -->
+                <section id="servicos-section" style="display: none;">
+                    <h2>Meus Serviços</h2>
+                    <form id="servico-form">
+                        <input type="text" id="servico-nome" placeholder="Nome do Serviço" required>
+                        <textarea id="servico-descricao" placeholder="Descrição do Serviço"></textarea>
+                        <input type="number" id="servico-preco" placeholder="Preço" step="0.01" required>
+                        <button type="submit">Adicionar Serviço</button>
+                    </form>
+                    <h3>Lista de Serviços</h3>
+                    <ul id="servicos-list">
+                        <!-- Serviços serão carregados aqui -->
+                    </ul>
+                </section>
+
+                <!-- Seção de Pedidos -->
+                <section id="pedidos-section" style="display: none;">
+                    <h2>Meus Pedidos</h2>
+                    <form id="pedido-form">
+                        <select id="pedido-cliente-select" required>
+                            <option value="">Selecione um Cliente</option>
+                            <!-- Clientes serão carregados aqui dinamicamente -->
+                        </select>
+                        <input type="number" id="pedido-valor-total" placeholder="Valor Total" step="0.01" required>
+                        <button type="submit">Criar Pedido</button>
+                    </form>
+                    <h3>Lista de Pedidos</h3>
+                    <ul id="pedidos-list">
+                        <!-- Pedidos serão carregados aqui -->
+                    </ul>
+                </section>
+
+                <!-- Seção de Gerenciamento de Empresas (APENAS ADMIN) -->
+                <section id="companies-section" class="admin-only" style="display: none;">
+                    <h2>Gerenciar Empresas</h2>
+                    <form id="company-form">
+                        <input type="text" id="company-name" placeholder="Nome da Nova Empresa" required>
+                        <button type="submit">Criar Empresa</button>
+                    </form>
+                    <h3>Lista de Empresas</h3>
+                    <ul id="companies-list">
+                        <!-- Empresas serão carregadas aqui -->
+                    </ul>
+                </section>
+
+                <!-- Seção de Gerenciamento de Usuários (APENAS ADMIN) -->
+                <section id="users-section" class="admin-only" style="display: none;">
+                    <h2>Gerenciar Usuários</h2>
+                    <form id="user-creation-form">
+                        <input type="email" id="new-user-email" placeholder="E-mail do Novo Usuário" required>
+                        <input type="password" id="new-user-password" placeholder="Senha do Novo Usuário" required>
+                        <input type="text" id="new-user-full-name" placeholder="Nome Completo (Opcional)">
+                        <select id="new-user-role" required>
+                            <option value="user">Usuário Comum</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                        <select id="new-user-company-select" required>
+                            <option value="">Selecione a Empresa</option>
+                            <!-- Empresas serão carregadas aqui dinamicamente -->
+                        </select>
+                        <button type="submit">Criar Usuário</button>
+                    </form>
+                    <h3>Lista de Usuários</h3>
+                    <ul id="users-list">
+                        <!-- Usuários serão carregados aqui -->
+                    </ul>
+                </section>
+            </main>
+        </section>
+    </div>
+
+    <script>
+        // Inclui o Supabase JS CDN DENTRO DESTE BLOCO SCRIPT
+        // Isso garante que 'Supabase' esteja definido antes de ser usado
+        const script = document.createElement('script');
+        script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+        script.onload = () => {
+            // Este código será executado APENAS depois que o Supabase CDN for carregado
+            // CONFIGURAÇÃO DO SUPABASE (Com suas chaves reais)
+            const SUPABASE_URL = 'https://lwocvzymhkwvjlsarflf.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3b2N2enltaGt3dmpsc2FyZmxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxOTM1OTUsImV4cCI6MjA2ODc2OTU5NX0.ucW4LCE7bE_vKlHcGSP55By-Z5MVPCGv6vRaClr1lv4';
+
+            const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+            let currentUserCompanyId = null; // Armazenará o company_id do usuário logado
+            let currentUserRole = null;     // Armazenará a role do usuário logado
+
+            // --- Elementos do DOM ---
+            const loginSection = document.getElementById('login-section');
+            const dashboardSection = document.getElementById('dashboard-section'); // Nova seção para o dashboard
+            const loginForm = document.getElementById('login-form');
+            const logoutButton = document.getElementById('logout-button');
+            const userEmailDisplay = document.getElementById('user-email-display');
+            const userRoleDisplay = document.getElementById('user-role-display');
+
+            const clientesSection = document.getElementById('clientes-section');
+            const servicosSection = document.getElementById('servicos-section');
+            const pedidosSection = document.getElementById('pedidos-section');
+            const companiesSection = document.getElementById('companies-section');
+            const usersSection = document.getElementById('users-section');
+
+            const showClientesBtn = document.getElementById('show-clientes');
+            const showServicosBtn = document.getElementById('show-servicos');
+            const showPedidosBtn = document.getElementById('show-pedidos');
+            const showCompaniesBtn = document.getElementById('show-companies');
+            const showUsersBtn = document.getElementById('show-users');
+
+            // --- Funções de Autenticação e Verificação ---
+            async function checkAuthAndDisplayContent() {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    // Se não houver usuário logado, mostra a tela de login
+                    document.body.classList.add('login-page');
+                    loginSection.style.display = 'block';
+                    dashboardSection.style.display = 'none';
+                } else {
+                    // Se houver usuário, mostra o dashboard e busca o perfil
+                    document.body.classList.remove('login-page');
+                    loginSection.style.display = 'none';
+                    dashboardSection.style.display = 'block';
+                    await fetchUserProfile(user.id);
+                }
+            }
+
+            async function fetchUserProfile(userId) {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('email, role, company_id')
+                    .eq('id', userId)
+                    .single();
+
+                if (error) {
+                    console.error('Erro ao buscar perfil do usuário:', error.message);
+                    alert('Não foi possível carregar o seu perfil. Por favor, tente novamente ou entre em contato com o suporte.');
+                    await supabase.auth.signOut();
+                    checkAuthAndDisplayContent(); // Redireciona para login
+                } else if (data) {
+                    currentUserCompanyId = data.company_id;
+                    currentUserRole = data.role;
+                    userEmailDisplay.textContent = data.email;
+                    userRoleDisplay.textContent = data.role;
+
+                    console.log(`Usuário logado: ${data.email}, Role: ${currentUserRole}, Company ID: ${currentUserCompanyId}`);
+
+                    // Carrega os dados dependendo da role e company_id
+                    loadClientes();
+                    loadServicos();
+                    loadPedidos();
+                    loadClientesForPedidoSelect();
+
+                    // Mostra/Oculta seções de admin
+                    if (currentUserRole === 'admin') {
+                        document.querySelectorAll('.admin-feature').forEach(btn => btn.style.display = 'block');
+                        showSection(clientesSection); // Por padrão, mostra clientes para admin também
+                        loadCompanies(); // Carrega empresas para o admin
+                        loadUsers();     // Carrega usuários para o admin
+                        loadCompaniesForUserSelect(); // Carrega empresas para o select de criação de usuário
+                    } else {
+                        document.querySelectorAll('.admin-feature').forEach(btn => btn.style.display = 'none');
+                        showSection(clientesSection); // Usuário comum sempre começa na seção de clientes
+                    }
+                }
+            }
+
+            async function handleLogout() {
+                const { error } = await supabase.auth.signOut();
+                if (error) {
+                    console.error('Erro ao fazer logout:', error.message);
+                    alert('Erro ao sair: ' + error.message);
+                } else {
+                    checkAuthAndDisplayContent(); // Volta para a tela de login
+                }
+            }
+
+            // --- Funções para Gerenciar a Interface das Seções ---
+            function showSection(sectionToShow) {
+                clientesSection.style.display = 'none';
+                servicosSection.style.display = 'none';
+                pedidosSection.style.display = 'none';
+                companiesSection.style.display = 'none';
+                usersSection.style.display = 'none';
+                sectionToShow.style.display = 'block';
+            }
+
+            showClientesBtn.addEventListener('click', () => showSection(clientesSection));
+            showServicosBtn.addEventListener('click', () => showSection(servicosSection));
+            showPedidosBtn.addEventListener('click', () => {
+                showSection(pedidosSection);
+                loadClientesForPedidoSelect(); // Recarrega clientes para o select ao abrir a aba
+            });
+            showCompaniesBtn.addEventListener('click', () => { // Novo listener
+                showSection(companiesSection);
+                loadCompanies();
+            });
+            showUsersBtn.addEventListener('click', () => {     // Novo listener
+                showSection(usersSection);
+                loadUsers();
+                loadCompaniesForUserSelect(); // Recarrega empresas para o select de usuário
+            });
+
+            // --- Listener do Formulário de Login ---
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = loginForm['login-email'].value;
+                const password = loginForm['login-password'].value;
+
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+
+                if (error) {
+                    console.error('Erro no login:', error.message);
+                    alert('Erro no login: ' + error.message);
+                } else if (data.user) {
+                    console.log('Login bem-sucedido:', data.user);
+
+                    // *** IMPORTANTE: Garante que o perfil do usuário seja criado/atualizado no primeiro login ***
+                    const { error: rpcError } = await supabase.rpc('create_profile_for_user', {
+                        user_id: data.user.id,
+                        user_email: data.user.email,
+                        user_role: 'user', // Role padrão inicial, será atualizada para 'admin' manualmente no Supabase
+                        user_company_id: null // Será gerado na função se não existir, ou você pode passar um UUID específico aqui se for uma empresa já existente
+                    });
+
+                    if (rpcError) {
+                        console.error('Erro ao garantir perfil via RPC no login:', rpcError.message);
+                        alert('Erro ao configurar seu perfil. Por favor, tente fazer login novamente.');
+                        await supabase.auth.signOut(); // Força o logout se o perfil não puder ser criado
+                        checkAuthAndDisplayContent();
+                    } else {
+                        console.log('Perfil do usuário verificado/criado via RPC no login.');
+                        alert('Login bem-sucedido!');
+                        checkAuthAndDisplayContent(); // Atualiza a UI para o dashboard
+                    }
+                }
+            });
+
+            // --- Funções CRUD (Clientes como Exemplo) ---
+
+            // Carregar Clientes
+            async function loadClientes() {
+                if (!currentUserCompanyId && currentUserRole !== 'admin') {
+                    console.warn('company_id ou role de admin não disponível para carregar clientes.');
+                    return;
+                }
+                const query = supabase.from('clientes').select('*');
+                if (currentUserRole !== 'admin') {
+                    query.eq('company_id', currentUserCompanyId);
+                }
+
+                const { data, error } = await query;
+
+                if (error) {
+                    console.error('Erro ao carregar clientes:', error.message);
+                    alert('Erro ao carregar clientes: ' + error.message);
+                } else {
+                    const clientesList = document.getElementById('clientes-list');
+                    clientesList.innerHTML = '';
+                    if (data.length === 0) {
+                        clientesList.innerHTML = '<p>Nenhum cliente cadastrado ainda.</p>';
+                        return;
+                    }
+                    data.forEach(cliente => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <span>
+                                <strong>${cliente.nome}</strong> (${cliente.email || 'N/A'}) <br>
+                                Tel: ${cliente.telefone || 'N/A'} - End: ${cliente.endereco || 'N/A'} <br>
+                                CNPJ/CPF: ${cliente.cnpj_cpf || 'N/A'} - Resp: ${cliente.responsavel || 'N/A'}
+                            </span>
+                            <div>
+                                <button data-id="${cliente.id}" class="edit-cliente-btn">Editar</button>
+                                <button data-id="${cliente.id}" class="delete-btn">Excluir</button>
+                            </div>
+                        `;
+                        clientesList.appendChild(li);
+                    });
+                    addClienteActionListeners();
+                }
+            }
+
+            // Adicionar/Editar Cliente
+            document.getElementById('cliente-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!currentUserCompanyId && currentUserRole !== 'admin') {
+                    alert('Erro: ID da empresa ou role de admin não disponível. Tente recarregar a página.');
+                    return;
+                }
+
+                const nome = document.getElementById('cliente-nome').value;
+                const email = document.getElementById('cliente-email').value;
+                const telefone = document.getElementById('cliente-telefone').value;
+                const endereco = document.getElementById('cliente-endereco').value;
+                const cnpj_cpf = document.getElementById('cliente-cnpj-cpf').value;
+                const responsavel = document.getElementById('cliente-responsavel').value;
+
+                const currentClienteId = e.target.dataset.editingId;
+
+                let dbOperation;
+                if (currentClienteId) {
+                    dbOperation = supabase
+                        .from('clientes')
+                        .update({ nome, email, telefone, endereco, cnpj_cpf, responsavel })
+                        .eq('id', currentClienteId)
+                        .eq('company_id', currentUserCompanyId);
+                } else {
+                    dbOperation = supabase
+                        .from('clientes')
+                        .insert([
+                            {
+                                nome, email, telefone, endereco, cnpj_cpf, responsavel,
+                                company_id: currentUserCompanyId
+                            }
+                        ]);
+                }
+
+                const { error } = await dbOperation;
+
+                if (error) {
+                    console.error('Erro ao salvar cliente:', error.message);
+                    alert('Erro ao salvar cliente: ' + error.message);
+                } else {
+                    alert(currentClienteId ? 'Cliente atualizado com sucesso!' : 'Cliente adicionado com sucesso!');
+                    document.getElementById('cliente-form').reset();
+                    delete e.target.dataset.editingId;
+                    e.target.querySelector('button[type="submit"]').textContent = 'Adicionar Cliente';
+                    loadClientes();
+                    loadClientesForPedidoSelect();
+                }
+            });
+
+            // Preencher formulário para edição
+            async function editCliente(id) {
+                const { data, error } = await supabase
+                    .from('clientes')
+                    .select('*')
+                    .eq('id', id)
+                    .eq('company_id', currentUserCompanyId)
+                    .single();
+
+                if (error) {
+                    console.error('Erro ao buscar cliente para edição:', error.message);
+                    alert('Erro ao carregar dados do cliente para edição.');
+                } else if (data) {
+                    document.getElementById('cliente-nome').value = data.nome;
+                    document.getElementById('cliente-email').value = data.email;
+                    document.getElementById('cliente-telefone').value = data.telefone;
+                    document.getElementById('cliente-endereco').value = data.endereco;
+                    document.getElementById('cliente-cnpj-cpf').value = data.cnpj_cpf;
+                    document.getElementById('cliente-responsavel').value = data.responsavel;
+                    document.getElementById('cliente-form').dataset.editingId = data.id;
+                    document.getElementById('cliente-form').querySelector('button[type="submit"]').textContent = 'Atualizar Cliente';
+                }
+            }
+
+            // Excluir Cliente
+            async function deleteCliente(id) {
+                const { error } = await supabase
+                    .from('clientes')
+                    .delete()
+                    .eq('id', id)
+                    .eq('company_id', currentUserCompanyId);
+
+                if (error) {
+                    console.error('Erro ao excluir cliente:', error.message);
+                    alert('Erro ao excluir cliente: ' + error.message);
+                } else {
+                    alert('Cliente excluído com sucesso!');
+                    loadClientes();
+                    loadClientesForPedidoSelect();
+                }
+            }
+
+            function addClienteActionListeners() {
+                document.querySelectorAll('#clientes-list .delete-btn').forEach(button => {
+                    button.onclick = () => {
+                        if (confirm('Tem certeza que deseja excluir este cliente?')) {
+                            deleteCliente(button.dataset.id);
+                        }
+                    };
+                });
+                document.querySelectorAll('#clientes-list .edit-cliente-btn').forEach(button => {
+                    button.onclick = () => editCliente(button.dataset.id);
+                });
+            }
+
+            // --- Funções CRUD para Serviços ---
+            async function loadServicos() {
+                if (!currentUserCompanyId && currentUserRole !== 'admin') return;
+                const query = supabase.from('servicos').select('*');
+                if (currentUserRole !== 'admin') {
+                    query.eq('company_id', currentUserCompanyId);
+                }
+                const { data, error } = await query;
+
+                if (error) {
+                    console.error('Erro ao carregar serviços:', error.message);
+                    alert('Erro ao carregar serviços: ' + error.message);
+                } else {
+                    const servicosList = document.getElementById('servicos-list');
+                    servicosList.innerHTML = '';
+                    if (data.length === 0) {
+                        servicosList.innerHTML = '<p>Nenhum serviço cadastrado ainda.</p>';
+                        return;
+                    }
+                    data.forEach(servico => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <span>
+                                <strong>${servico.nome}</strong> (R$ ${servico.preco.toFixed(2)})<br>
+                                Descrição: ${servico.descricao || 'N/A'}
+                            </span>
+                            <div>
+                                <button data-id="${servico.id}" class="edit-servico-btn">Editar</button>
+                                <button data-id="${servico.id}" class="delete-servico-btn">Excluir</button>
+                            </div>
+                        `;
+                        servicosList.appendChild(li);
+                    });
+                    addServicoActionListeners();
+                }
+            }
+
+            document.getElementById('servico-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!currentUserCompanyId && currentUserRole !== 'admin') return;
+
+                const nome = document.getElementById('servico-nome').value;
+                const descricao = document.getElementById('servico-descricao').value;
+                const preco = parseFloat(document.getElementById('servico-preco').value);
+
+                const currentServicoId = e.target.dataset.editingId;
+
+                let dbOperation;
+                if (currentServicoId) {
+                    dbOperation = supabase
+                        .from('servicos')
+                        .update({ nome, descricao, preco })
+                        .eq('id', currentServicoId)
+                        .eq('company_id', currentUserCompanyId);
+                } else {
+                    dbOperation = supabase
+                        .from('servicos')
+                        .insert([
+                            {
+                                nome, descricao, preco,
+                                company_id: currentUserCompanyId
+                            }
+                        ]);
+                }
+
+                const { error } = await dbOperation;
+
+                if (error) {
+                    console.error('Erro ao salvar serviço:', error.message);
+                    alert('Erro ao salvar serviço: ' + error.message);
+                } else {
+                    alert(currentServicoId ? 'Serviço atualizado com sucesso!' : 'Serviço adicionado com sucesso!');
+                    document.getElementById('servico-form').reset();
+                    delete e.target.dataset.editingId;
+                    e.target.querySelector('button[type="submit"]').textContent = 'Adicionar Serviço';
+                    loadServicos();
+                }
+            });
+
+            async function editServico(id) {
+                const { data, error } = await supabase
+                    .from('servicos')
+                    .select('*')
+                    .eq('id', id)
+                    .eq('company_id', currentUserCompanyId)
+                    .single();
+
+                if (error) {
+                    console.error('Erro ao buscar serviço para edição:', error.message);
+                    alert('Erro ao carregar dados do serviço para edição.');
+                } else if (data) {
+                    document.getElementById('servico-nome').value = data.nome;
+                    document.getElementById('servico-descricao').value = data.descricao;
+                    document.getElementById('servico-preco').value = data.preco;
+                    document.getElementById('servico-form').dataset.editingId = data.id;
+                    document.getElementById('servico-form').querySelector('button[type="submit"]').textContent = 'Atualizar Serviço';
+                }
+            }
+
+            async function deleteServico(id) {
+                const { error } = await supabase
+                    .from('servicos')
+                    .delete()
+                    .eq('id', id)
+                    .eq('company_id', currentUserCompanyId);
+
+                if (error) {
+                    console.error('Erro ao excluir serviço:', error.message);
+                    alert('Erro ao excluir serviço: ' + error.message);
+                } else {
+                    alert('Serviço excluído com sucesso!');
+                    loadServicos();
+                }
+            }
+
+            function addServicoActionListeners() {
+                document.querySelectorAll('#servicos-list .delete-servico-btn').forEach(button => {
+                    button.onclick = () => {
+                        if (confirm('Tem certeza que deseja excluir este serviço?')) {
+                            deleteServico(button.dataset.id);
+                        }
+                    };
+                });
+                document.querySelectorAll('#servicos-list .edit-servico-btn').forEach(button => {
+                    button.onclick = () => editServico(button.dataset.id);
+                });
+            }
+
+
+            // --- Funções CRUD para Pedidos ---
+            async function loadClientesForPedidoSelect() {
+                if (!currentUserCompanyId && currentUserRole !== 'admin') return;
+                const query = supabase.from('clientes').select('id, nome');
+                if (currentUserRole !== 'admin') {
+                    query.eq('company_id', currentUserCompanyId);
+                }
+                const { data, error } = await query;
+
+                if (error) {
+                    console.error('Erro ao carregar clientes para o select:', error.message);
+                } else {
+                    const selectElement = document.getElementById('pedido-cliente-select');
+                    selectElement.innerHTML = '<option value="">Selecione um Cliente</option>';
+                    data.forEach(cliente => {
+                        const option = document.createElement('option');
+                        option.value = cliente.id;
+                        option.textContent = cliente.nome;
+                        selectElement.appendChild(option);
+                    });
+                }
+            }
+
+            async function loadPedidos() {
+                if (!currentUserCompanyId && currentUserRole !== 'admin') return;
+                const query = supabase.from('pedidos').select('*, clientes(nome)');
+                if (currentUserRole !== 'admin') {
+                    query.eq('company_id', currentUserCompanyId);
+                }
+                const { data, error } = await query.order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('Erro ao carregar pedidos:', error.message);
+                    alert('Erro ao carregar pedidos: ' + error.message);
+                } else {
+                    const pedidosList = document.getElementById('pedidos-list');
+                    pedidosList.innerHTML = '';
+                    if (data.length === 0) {
+                        pedidosList.innerHTML = '<p>Nenhum pedido cadastrado ainda.</p>';
+                        return;
+                    }
+                    data.forEach(pedido => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <span>
+                                <strong>Pedido #${pedido.id.substring(0, 8)}</strong> - Cliente: ${pedido.clientes ? pedido.clientes.nome : 'N/A'} <br>
+                                Status: ${pedido.status} - Valor: R$ ${pedido.valor_total.toFixed(2)} <br>
+                                Data: ${new Date(pedido.data_pedido).toLocaleDateString()}
+                            </span>
+                            <div>
+                                <button data-id="${pedido.id}" class="edit-pedido-btn">Editar</button>
+                                <button data-id="${pedido.id}" class="delete-pedido-btn">Excluir</button>
+                            </div>
+                        `;
+                        pedidosList.appendChild(li);
+                    });
+                    addPedidoActionListeners();
+                }
+            }
+
+            document.getElementById('pedido-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!currentUserCompanyId && currentUserRole !== 'admin') return;
+
+                const clienteId = document.getElementById('pedido-cliente-select').value;
+                const valorTotal = parseFloat(document.getElementById('pedido-valor-total').value);
+
+                if (!clienteId) {
+                    alert('Por favor, selecione um cliente.');
+                    return;
+                }
+
+                const currentPedidoId = e.target.dataset.editingId;
+
+                let dbOperation;
+                if (currentPedidoId) {
+                    dbOperation = supabase
+                        .from('pedidos')
+                        .update({ cliente_id: clienteId, valor_total: valorTotal })
+                        .eq('id', currentPedidoId)
+                        .eq('company_id', currentUserCompanyId);
+                } else {
+                    dbOperation = supabase
+                        .from('pedidos')
+                        .insert([
+                            {
+                                cliente_id: clienteId,
+                                valor_total: valorTotal,
+                                company_id: currentUserCompanyId
+                            }
+                        ]);
+                }
+
+                const { error } = await dbOperation;
+
+                if (error) {
+                    console.error('Erro ao salvar pedido:', error.message);
+                    alert('Erro ao salvar pedido: ' + error.message);
+                } else {
+                    alert(currentPedidoId ? 'Pedido atualizado com sucesso!' : 'Pedido criado com sucesso!');
+                    document.getElementById('pedido-form').reset();
+                    delete e.target.dataset.editingId;
+                    e.target.querySelector('button[type="submit"]').textContent = 'Criar Pedido';
+                    loadPedidos();
+                }
+            });
+
+            async function editPedido(id) {
+                const { data, error } = await supabase
+                    .from('pedidos')
+                    .select('*')
+                    .eq('id', id)
+                    .eq('company_id', currentUserCompanyId)
+                    .single();
+
+                if (error) {
+                    console.error('Erro ao buscar pedido para edição:', error.message);
+                    alert('Erro ao carregar dados do pedido para edição.');
+                } else if (data) {
+                    document.getElementById('pedido-cliente-select').value = data.cliente_id;
+                    document.getElementById('pedido-valor-total').value = data.valor_total;
+                    document.getElementById('pedido-form').dataset.editingId = data.id;
+                    document.getElementById('pedido-form').querySelector('button[type="submit"]').textContent = 'Atualizar Pedido';
+                }
+            }
+
+            async function deletePedido(id) {
+                const { error } = await supabase
+                    .from('pedidos')
+                    .delete()
+                    .eq('id', id)
+                    .eq('company_id', currentUserCompanyId);
+
+                if (error) {
+                    console.error('Erro ao excluir pedido:', error.message);
+                    alert('Erro ao excluir pedido: ' + error.message);
+                } else {
+                    alert('Pedido excluído com sucesso!');
+                    loadPedidos();
+                }
+            }
+
+            function addPedidoActionListeners() {
+                document.querySelectorAll('#pedidos-list .delete-pedido-btn').forEach(button => {
+                    button.onclick = () => {
+                        if (confirm('Tem certeza que deseja excluir este pedido?')) {
+                            deletePedido(button.dataset.id);
+                        }
+                    };
+                });
+                document.querySelectorAll('#pedidos-list .edit-pedido-btn').forEach(button => {
+                    button.onclick = () => editPedido(button.dataset.id);
+                });
+            }
+
+            // --- Funções CRUD para Gerenciamento de Empresas (APENAS ADMIN) ---
+            async function loadCompanies() {
+                if (currentUserRole !== 'admin') return;
+                const { data, error } = await supabase
+                    .from('companies')
+                    .select('*');
+
+                if (error) {
+                    console.error('Erro ao carregar empresas:', error.message);
+                    alert('Erro ao carregar empresas: ' + error.message);
+                } else {
+                    const companiesList = document.getElementById('companies-list');
+                    companiesList.innerHTML = '';
+                    if (data.length === 0) {
+                        companiesList.innerHTML = '<p>Nenhuma empresa cadastrada ainda.</p>';
+                        return;
+                    }
+                    data.forEach(company => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <span>
+                                <strong>${company.name}</strong> (ID: ${company.id.substring(0, 8)}...)
+                            </span>
+                            <div>
+                                <button data-id="${company.id}" class="edit-company-btn">Editar</button>
+                                <button data-id="${company.id}" class="delete-company-btn">Excluir</button>
+                            </div>
+                        `;
+                        companiesList.appendChild(li);
+                    });
+                    addCompanyActionListeners();
+                    loadCompaniesForUserSelect();
+                }
+            }
+
+            document.getElementById('company-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (currentUserRole !== 'admin') { alert('Permissão negada.'); return; }
+
+                const companyName = document.getElementById('company-name').value;
+                const currentCompanyId = e.target.dataset.editingId;
+
+                let dbOperation;
+                if (currentCompanyId) {
+                    dbOperation = supabase
+                        .from('companies')
+                        .update({ name: companyName })
+                        .eq('id', currentCompanyId);
+                } else {
+                    dbOperation = supabase.rpc('create_new_company', { company_name: companyName });
+                }
+
+                const { error } = await dbOperation;
+
+                if (error) {
+                    console.error('Erro ao salvar empresa:', error.message);
+                    alert('Erro ao salvar empresa: ' + error.message);
+                } else {
+                    alert(currentCompanyId ? 'Empresa atualizada com sucesso!' : 'Empresa criada com sucesso!');
+                    document.getElementById('company-form').reset();
+                    delete e.target.dataset.editingId;
+                    e.target.querySelector('button[type="submit"]').textContent = 'Criar Empresa';
+                    loadCompanies();
+                }
+            });
+
+            async function editCompany(id) {
+                const { data, error } = await supabase
+                    .from('companies')
+                    .select('*')
+                    .eq('id', id)
+                    .single();
+
+                if (error) {
+                    console.error('Erro ao buscar empresa para edição:', error.message);
+                    alert('Erro ao carregar dados da empresa para edição.');
+                } else if (data) {
+                    document.getElementById('company-name').value = data.name;
+                    document.getElementById('company-form').dataset.editingId = data.id;
+                    document.getElementById('company-form').querySelector('button[type="submit"]').textContent = 'Atualizar Empresa';
+                }
+            }
+
+            async function deleteCompany(id) {
+                if (!confirm('Tem certeza que deseja EXCLUIR esta empresa e TODOS os seus dados (perfis, clientes, serviços, pedidos)? Esta ação é irreversível!')) {
+                    return;
+                }
+                const { error } = await supabase
+                    .from('companies')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) {
+                    console.error('Erro ao excluir empresa:', error.message);
+                    alert('Erro ao excluir empresa: ' + error.message);
+                } else {
+                    alert('Empresa excluída com sucesso!');
+                    loadCompanies();
+                }
+            }
+
+            function addCompanyActionListeners() {
+                document.querySelectorAll('#companies-list .delete-company-btn').forEach(button => {
+                    button.onclick = () => deleteCompany(button.dataset.id);
+                });
+                document.querySelectorAll('#companies-list .edit-company-btn').forEach(button => {
+                    button.onclick = () => editCompany(button.dataset.id);
+                });
+            }
+
+            // --- Funções CRUD para Gerenciamento de Usuários (APENAS ADMIN) ---
+            async function loadCompaniesForUserSelect() {
+                if (currentUserRole !== 'admin') return;
+                const { data, error } = await supabase
+                    .from('companies')
+                    .select('id, name');
+
+                if (error) {
+                    console.error('Erro ao carregar empresas para o select de usuário:', error.message);
+                } else {
+                    const selectElement = document.getElementById('new-user-company-select');
+                    selectElement.innerHTML = '<option value="">Selecione a Empresa</option>';
+                    data.forEach(company => {
+                        const option = document.createElement('option');
+                        option.value = company.id;
+                        option.textContent = company.name;
+                        selectElement.appendChild(option);
+                    });
+                }
+            }
+
+            async function loadUsers() {
+                if (currentUserRole !== 'admin') return;
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('*, companies(name)');
+
+                if (error) {
+                    console.error('Erro ao carregar usuários:', error.message);
+                    alert('Erro ao carregar usuários: ' + error.message);
+                } else {
+                    const usersList = document.getElementById('users-list');
+                    usersList.innerHTML = '';
+                    if (data.length === 0) {
+                        usersList.innerHTML = '<p>Nenhum usuário cadastrado ainda.</p>';
+                        return;
+                    }
+                    data.forEach(profile => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <span>
+                                <strong>${profile.email}</strong> (${profile.full_name || 'N/A'}) <br>
+                                Role: ${profile.role} | Empresa: ${profile.companies ? profile.companies.name : 'N/A'}
+                            </span>
+                            <div>
+                                <button data-id="${profile.id}" data-email="${profile.email}" data-role="${profile.role}" data-company-id="${profile.company_id}" data-full-name="${profile.full_name || ''}" class="edit-user-btn">Editar</button>
+                                <button data-id="${profile.id}" class="delete-user-btn">Excluir</button>
+                            </div>
+                        `;
+                        usersList.appendChild(li);
+                    });
+                    addUserActionListeners();
+                }
+            }
+
+            document.getElementById('user-creation-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (currentUserRole !== 'admin') { alert('Permissão negada.'); return; }
+
+                const email = document.getElementById('new-user-email').value;
+                const password = document.getElementById('new-user-password').value;
+                const fullName = document.getElementById('new-user-full-name').value;
+                const role = document.getElementById('new-user-role').value;
+                const companyId = document.getElementById('new-user-company-select').value;
+
+                if (!companyId) {
+                    alert('Por favor, selecione uma empresa para o novo usuário.');
+                    return;
+                }
+
+                const currentUserId = e.target.dataset.editingId;
+
+                let authOperation;
+                if (currentUserId) {
+                    const updateData = { email: email };
+                    if (password) {
+                        updateData.password = password;
+                    }
+                    authOperation = supabase.auth.admin.updateUserById(currentUserId, updateData);
+                } else {
+                    authOperation = supabase.auth.admin.createUser({
+                        email: email,
+                        password: password,
+                        email_confirm: true
+                    });
+                }
+
+                const { data: authData, error: authError } = await authOperation;
+
+                if (authError) {
+                    console.error('Erro na operação de autenticação (criar/atualizar usuário):', authError.message);
+                    alert('Erro ao criar/atualizar usuário: ' + authError.message);
+                    return;
+                }
+
+                const userId = currentUserId || authData.user.id;
+
+                const { error: rpcError } = await supabase.rpc('create_profile_for_user', {
+                    user_id: userId,
+                    user_email: email,
+                    user_role: role,
+                    user_company_id: companyId,
+                    full_name: fullName
+                });
+
+                if (rpcError) {
+                    console.error('Erro ao criar/atualizar perfil via RPC:', rpcError.message);
+                    alert('Erro ao criar/atualizar perfil do usuário: ' + rpcError.message);
+                    if (!currentUserId) {
+                         await supabase.auth.admin.deleteUser(userId);
+                         console.log('Usuário auth.users revertido devido a falha no perfil.');
+                    }
+                } else {
+                    alert(currentUserId ? 'Usuário e perfil atualizados com sucesso!' : 'Usuário e perfil criados com sucesso!');
+                    document.getElementById('user-creation-form').reset();
+                    delete e.target.dataset.editingId;
+                    e.target.querySelector('button[type="submit"]').textContent = 'Criar Usuário';
+                    loadUsers();
+                }
+            });
+
+            async function editUser(id, email, role, companyId, fullName) {
+                document.getElementById('new-user-email').value = email;
+                document.getElementById('new-user-full-name').value = fullName;
+                document.getElementById('new-user-role').value = role;
+                document.getElementById('new-user-company-select').value = companyId;
+                document.getElementById('user-creation-form').dataset.editingId = id;
+                document.getElementById('user-creation-form').querySelector('button[type="submit"]').textContent = 'Atualizar Usuário';
+            }
+
+            async function deleteUser(id) {
+                if (!confirm('Tem certeza que deseja EXCLUIR este usuário? Isso removerá o acesso e o perfil dele. Esta ação é irreversível!')) {
+                    return;
+                }
+                const { error } = await supabase.auth.admin.deleteUser(id);
+
+                if (error) {
+                    console.error('Erro ao excluir usuário:', error.message);
+                    alert('Erro ao excluir usuário: ' + error.message);
+                } else {
+                    alert('Usuário excluído com sucesso!');
+                    loadUsers();
+                }
+            }
+
+            function addUserActionListeners() {
+                document.querySelectorAll('#users-list .delete-user-btn').forEach(button => {
+                    button.onclick = () => deleteUser(button.dataset.id);
+                });
+                document.querySelectorAll('#users-list .edit-user-btn').forEach(button => {
+                    button.onclick = () => editUser(
+                        button.dataset.id,
+                        button.dataset.email,
+                        button.dataset.role,
+                        button.dataset.companyId,
+                        button.dataset.fullName
+                    );
+                });
+            }
+
+
+            // --- Inicialização ---
+            logoutButton.addEventListener('click', handleLogout);
+
+            // Listener para o evento de autenticação do Supabase
+            supabase.auth.onAuthStateChange((event, session) => {
+                console.log('Auth event:', event, 'Session:', session);
+                if (event === 'SIGNED_IN' && session) {
+                    checkAuthAndDisplayContent();
+                } else if (event === 'SIGNED_OUT') {
+                    checkAuthAndDisplayContent();
+                } else {
+                    checkAuthAndDisplayContent();
+                }
+            });
+
+            // Chama a função de verificação de autenticação ao carregar a página
+            checkAuthAndDisplayContent();
+        };
+        document.body.appendChild(script); // Adiciona o script do Supabase ao body
+    </script>
+</body>
+</html>
