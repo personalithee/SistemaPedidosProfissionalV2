@@ -1,4 +1,4 @@
-
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -590,17 +590,18 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     document.getElementById('add-servico-pedido-btn').addEventListener('click', () => {
-        const servicoId = parseInt(servicoPedidoSelect.value);
+        const servicoId = servicoPedidoSelect.value; // Removido parseInt, agora é string (UUID)
         const quantidade = parseInt(document.getElementById('quantidade-servico').value);
-        if (!servicoId || isNaN(quantidade) || quantidade <= 0) { // Adicionado isNaN e quantidade <= 0
+        if (!servicoId || isNaN(quantidade) || quantidade <= 0) { 
             alert('Selecione um serviço e insira uma quantidade válida.');
             return;
         }
-        const servico = servicosCache.find(s => s.id === servicoId);
+        // Garante que a comparação seja entre strings (UUIDs)
+        const servico = servicosCache.find(s => String(s.id) === String(servicoId)); 
         
         if (servico) {
             // Verifica se o serviço já está na lista e atualiza a quantidade
-            const existingServiceIndex = servicosNoPedidoAtual.findIndex(item => item.id === servicoId);
+            const existingServiceIndex = servicosNoPedidoAtual.findIndex(item => String(item.id) === String(servicoId));
             if (existingServiceIndex > -1) {
                 servicosNoPedidoAtual[existingServiceIndex].quantidade += quantidade;
             } else {
