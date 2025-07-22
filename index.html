@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Pedidos</title>
-    <!-- Inclui o Supabase JS CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* css/style.css */
         body {
@@ -455,6 +453,7 @@
         const SUPABASE_URL = 'https://lwocvzymhkwvjlsarflf.supabase.co'; // Ex: https://abcdefghijklm.supabase.co
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3b2N2enltaGt3dmpsc2FyZmxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxOTM1OTUsImV4cCI6MjA2ODc2OTU5NX0.ucW4LCE7bE_vKlHcGSP55By-Z5MVPCGv6vRaClr1lv4'; // Chave "anon public"
 
+        // Movido para DENTRO deste bloco de script para garantir que esteja definido
         const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let currentUserCompanyId = null; // Armazenará o company_id do usuário logado
