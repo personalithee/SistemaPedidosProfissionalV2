@@ -1,4 +1,4 @@
-DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -40,6 +40,10 @@ DOCTYPE html>
         #logout-btn-nav:hover { background-color: #c82333; }
         .tab-content { display: none; padding: 25px; }
         .tab-content.active { display: block; }
+        /* Adicionado estilo para garantir que a aba de configuração seja visível */
+        #configuracao-tab.active {
+            display: block !important;
+        }
         h2 { border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 20px; }
         form { background-color: var(--secondary-color); padding: 20px; border-radius: 8px; margin-bottom: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
         .form-group { display: flex; flex-direction: column; }
@@ -770,7 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const clientesKeysOrdenadas = Object.keys(pedidosAgrupadosPorCliente).sort((a, b) => {
             const nomeA = pedidosAgrupadosPorCliente[a].nome.toLowerCase();
-            const nomeB = b.nome.toLowerCase(); // Corrigido para usar b.nome
+            const nomeB = pedidosAgrupadosPorCliente[b].nome.toLowerCase();
             if (nomeA < nomeB) return -1;
             if (nomeA > nomeB) return 1;
             return 0;
@@ -1142,6 +1146,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('[renderEmpresas] HTML gerado para empresas:', empresasHtml); // Log do HTML gerado
         if (listaEmpresas) {
             listaEmpresas.innerHTML = empresasHtml;
+            console.log('[renderEmpresas] listaEmpresas.innerHTML atualizado.'); // Log de atualização do DOM
+        } else {
+            console.warn('[renderEmpresas] Elemento listaEmpresas não encontrado no DOM.'); // Aviso se o elemento não for encontrado
         }
         updateEmpresaSelectOptions(); // Atualiza o select de empresas para usuários
     }
@@ -1230,6 +1237,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('[renderUsuarios] HTML gerado para usuários:', usuariosHtml); // Log do HTML gerado
         if (listaUsuarios) {
             listaUsuarios.innerHTML = usuariosHtml;
+            console.log('[renderUsuarios] listaUsuarios.innerHTML atualizado.'); // Log de atualização do DOM
+        } else {
+            console.warn('[renderUsuarios] Elemento listaUsuarios não encontrado no DOM.'); // Aviso se o elemento não for encontrado
         }
         // Recarrega as empresas para o select de usuário
         await renderEmpresas(); 
