@@ -1,4 +1,4 @@
-DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -191,8 +191,11 @@ DOCTYPE html>
                 <div class="form-group"><label for="nome-empresa">Nome da Empresa</label><input type="text" id="nome-empresa" required></div>
                 <button type="submit" id="btn-add-empresa" style="grid-column: 1 / -1;">Adicionar Empresa</button>
             </form>
+            <!-- A lista de empresas será oculta, mas a função renderEmpresas ainda será chamada para popular o select de usuários -->
             <h3>Empresas Cadastradas</h3>
-            <div id="lista-empresas" class="item-list"></div>
+            <div id="lista-empresas" class="item-list">
+                <p>A lista de empresas não é exibida aqui. As empresas cadastradas aparecerão no campo de seleção ao criar/editar usuários.</p>
+            </div>
 
             <h2 style="margin-top: 40px;">Gerenciar Usuários</h2>
             <form id="form-usuario">
@@ -235,7 +238,8 @@ DOCTYPE html>
 <script>
 // Função de polling para esperar que o Supabase esteja definido
 function waitForSupabase(callback) {
-    if (typeof window.supabase !== 'undefined') { // Mudança aqui para window.supabase
+    // CORREÇÃO: Verifica window.Supabase (com 'S' maiúsculo)
+    if (typeof window.Supabase !== 'undefined') { 
         callback();
     } else {
         setTimeout(() => waitForSupabase(callback), 100); // Tenta novamente em 100ms
@@ -252,8 +256,8 @@ waitForSupabase(() => {
     // =================================================================================
     // =================================================================================
     
-    // CORREÇÃO: Acessa o objeto global 'supabase' (minúsculo) exposto pelo CDN
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // CORREÇÃO: Acessa o objeto global 'Supabase' (maiúsculo) exposto pelo CDN
+    const supabaseClient = window.Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
     const { jsPDF } = window.jspdf;
 
@@ -628,8 +632,8 @@ waitForSupabase(() => {
             console.log('Validação falhou: ID do serviço ou quantidade inválida.');
             return;
         }
-        // Garante que a comparação seja entre strings (UUIDs)
-        const servico = servicosCache.find(s => String(item.id) === String(servicoId)); 
+        // CORREÇÃO: Usar 's.id' em vez de 'item.id' na função find
+        const servico = servicosCache.find(s => String(s.id) === String(servicoId)); 
         
         if (servico) {
             console.log('Serviço encontrado no cache:', servico);
@@ -1056,8 +1060,8 @@ waitForSupabase(() => {
         let servicosHtml = pedido.servicos.map(s => `
             <li>
                 <span>${s.quantidade}x ${s.nome}</span>
-                <span>${formatCurrency(s.valor)} cada</span>
-                <span>${formatCurrency(s.valor * s.quantidade)}</span>
+                <span>${s.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} cada</span>
+                <span>${(s.valor * s.quantidade).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
             </li>
         `).join('');
 
@@ -1127,41 +1131,28 @@ waitForSupabase(() => {
     async function renderEmpresas() {
         console.log('[renderEmpresas] Função chamada.'); // Log de entrada
         if (currentUserRole !== 'admin') {
+            // Se não for admin, apenas garante que a mensagem de permissão negada esteja lá
             listaEmpresas.innerHTML = '<p>Você não tem permissão para visualizar empresas.</p>';
             console.log('[renderEmpresas] Usuário não é admin, acesso negado.'); // Log de permissão
             return;
         }
-        showLoading(listaEmpresas);
+        
+        // Mantém a mensagem para usuários admin também, pois a lista não será renderizada
+        listaEmpresas.innerHTML = '<p>A lista de empresas não é exibida aqui. As empresas cadastradas aparecerão no campo de seleção ao criar/editar usuários.</p>';
+        
         console.log('[renderEmpresas] Tentando carregar empresas do Supabase...'); // Log de carregamento
         const { data, error } = await supabaseClient.from('companies').select('*').order('name', { ascending: true });
         if (error) {
             showAlertError(error, 'Não foi possível carregar as empresas.');
-            listaEmpresas.innerHTML = '';
+            // Em caso de erro, exibe uma mensagem de erro em vez da mensagem padrão
+            listaEmpresas.innerHTML = '<p class="error">Erro ao carregar empresas. Verifique o console.</p>';
             console.error('[renderEmpresas] Erro ao carregar empresas:', error); // Log de erro
             return;
         }
         empresasCache = data; // Atualiza o cache de empresas
         console.log('[renderEmpresas] Empresas carregadas e cache atualizado:', empresasCache); // Log de dados carregados
         
-        let empresasHtml = '';
-        if (data.length === 0) {
-            empresasHtml = '<p>Nenhuma empresa cadastrada ainda.</p>';
-        } else {
-            empresasHtml = data.map(empresa => `
-                <div class="item-card">
-                    <div><strong>${empresa.name}</strong><br><small>ID: ${empresa.id}</small></div>
-                    <button class="delete-btn" data-id="${empresa.id}">Excluir</button>
-                </div>
-            `).join('');
-        }
-        console.log('[renderEmpresas] HTML gerado para empresas:', empresasHtml); // Log do HTML gerado
-        if (listaEmpresas) {
-            listaEmpresas.innerHTML = empresasHtml;
-            console.log('[renderEmpresas] listaEmpresas.innerHTML atualizado.'); // Log de atualização do DOM
-            console.log('[renderEmpresas] listaEmpresas offsetWidth:', listaEmpresas.offsetWidth, 'offsetHeight:', listaEmpresas.offsetHeight); // Log de dimensões
-        } else {
-            console.warn('[renderEmpresas] Elemento listaEmpresas não encontrado no DOM.'); // Aviso se o elemento não for encontrado
-        }
+        // Não renderiza o HTML da lista de empresas aqui, apenas atualiza o cache e o select
         updateEmpresaSelectOptions(); // Atualiza o select de empresas para usuários
     }
 
@@ -1183,19 +1174,22 @@ waitForSupabase(() => {
         } else {
             formEmpresa.reset();
             alert(`Empresa "${nomeEmpresa}" criada com sucesso! ID: ${data.company_id}`);
-            await renderEmpresas();
+            await renderEmpresas(); // Recarrega as empresas para atualizar o cache e o select
         }
         btn.disabled = false;
         btn.textContent = 'Adicionar Empresa';
     });
 
     listaEmpresas.addEventListener('click', async (e) => {
+        // Este listener ainda é necessário se o usuário tentar clicar em algo dentro de listaEmpresas,
+        // mesmo que a lista não esteja visível, para evitar comportamentos inesperados.
+        // No entanto, o botão de exclusão de empresa não estará visível.
         if (e.target.classList.contains('delete-btn') && currentUserRole === 'admin') {
             if (confirm('Tem certeza que deseja excluir esta empresa? Isso removerá TODOS os dados associados a ela (usuários, clientes, serviços, pedidos)! Esta ação é irreversível!')) {
                 const id = e.target.dataset.id;
                 const { error } = await supabaseClient.from('companies').delete().eq('id', id);
                 if (error) showAlertError(error, 'Erro ao excluir empresa.');
-                else await renderEmpresas();
+                else await renderEmpresas(); // Recarrega as empresas para atualizar o cache e o select
             }
         }
     });
