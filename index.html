@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -107,8 +107,8 @@
             <button class="nav-btn" data-tab="clientes">Clientes</button>
             <button class="nav-btn" data-tab="pedidos">Pedidos</button>
             <button class="nav-btn" data-tab="relatorio">Relatório</button>
-            <button class="nav-btn admin-feature" data-tab="empresas" style="display: none;">Empresas</button>
-            <button class="nav-btn admin-feature" data-tab="usuarios" style="display: none;">Usuários</button>
+            <!-- Nova aba de Configuração para administradores -->
+            <button class="nav-btn admin-feature" data-tab="configuracao" style="display: none;">Configuração</button>
             <button id="logout-btn-nav">Sair</button>
         </nav>
 
@@ -181,8 +181,8 @@
             </div>
         </div>
 
-        <!-- Seção de Gerenciamento de Empresas (APENAS ADMIN) -->
-        <div id="empresas-tab" class="tab-content admin-only" style="display: none;">
+        <!-- Seção de Gerenciamento de Configurações (APENAS ADMIN) -->
+        <div id="configuracao-tab" class="tab-content admin-only" style="display: none;">
             <h2>Gerenciar Empresas</h2>
             <form id="form-empresa">
                 <div class="form-group"><label for="nome-empresa">Nome da Empresa</label><input type="text" id="nome-empresa" required></div>
@@ -190,11 +190,8 @@
             </form>
             <h3>Empresas Cadastradas</h3>
             <div id="lista-empresas" class="item-list"></div>
-        </div>
 
-        <!-- Seção de Gerenciamento de Usuários (APENAS ADMIN) -->
-        <div id="usuarios-tab" class="tab-content admin-only" style="display: none;">
-            <h2>Gerenciar Usuários</h2>
+            <h2 style="margin-top: 40px;">Gerenciar Usuários</h2>
             <form id="form-usuario">
                 <div class="form-group"><label for="email-usuario">Email</label><input type="email" id="email-usuario" required></div>
                 <div class="form-group"><label for="senha-usuario">Senha (deixe em branco para não alterar)</label><input type="password" id="senha-usuario"></div>
@@ -327,9 +324,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(`[handleNavClick] Botão clicado: ${tabId}`); // Log de navegação
 
         // Controle de acesso baseado na role
-        // Seções de "Serviços", "Clientes" e "Relatório" são para admins
+        // Apenas a aba 'configuracao' é restrita para usuários comuns
         if (currentUserRole === 'user') {
-            if (tabId === 'servicos' || tabId === 'clientes' || tabId === 'relatorio' || tabId === 'empresas' || tabId === 'usuarios') {
+            if (tabId === 'configuracao') {
                 alert('Você não tem permissão para acessar esta seção.');
                 console.warn(`[handleNavClick] Acesso negado para usuário comum na aba: ${tabId}`);
                 return;
@@ -349,13 +346,10 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (tabId === 'servicos') renderServicos();
         else if (tabId === 'clientes') renderClientes();
         else if (tabId === 'pedidos') renderPedidos();
-        else if (tabId === 'empresas') {
-            console.log('[handleNavClick] Chamando renderEmpresas para a aba Empresas.'); // Log específico
-            renderEmpresas(); 
-        }
-        else if (tabId === 'usuarios') {
-            console.log('[handleNavClick] Chamando renderUsuarios para a aba Usuários.'); // Log específico
-            renderUsuarios(); 
+        else if (tabId === 'configuracao') { // Chamada para a nova aba de configuração
+            console.log('[handleNavClick] Chamando renderEmpresas e renderUsuarios para a aba Configuração.'); // Log específico
+            renderEmpresas(); // Irá carregar empresas
+            renderUsuarios(); // Irá carregar usuários e atualizar o select de empresas
         }
     }
 
@@ -410,8 +404,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (tabId === 'servicos') renderServicos();
                 else if (tabId === 'clientes') renderClientes();
                 else if (tabId === 'pedidos') renderPedidos();
-                else if (tabId === 'empresas') renderEmpresas();
-                else if (tabId === 'usuarios') renderUsuarios();
+                else if (tabId === 'configuracao') { // Chamada para a nova aba de configuração
+                    renderEmpresas();
+                    renderUsuarios();
+                }
             } else {
                 // Se nenhuma aba estiver ativa (o que não deve acontecer), renderiza serviços
                 renderServicos();
@@ -774,7 +770,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const clientesKeysOrdenadas = Object.keys(pedidosAgrupadosPorCliente).sort((a, b) => {
             const nomeA = pedidosAgrupadosPorCliente[a].nome.toLowerCase();
-            const nomeB = pedidosAgrupadosPorCliente[b].nome.toLowerCase();
+            const nomeB = b.nome.toLowerCase(); // Corrigido para usar b.nome
             if (nomeA < nomeB) return -1;
             if (nomeA > nomeB) return 1;
             return 0;
@@ -1045,8 +1041,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let servicosHtml = pedido.servicos.map(s => `
             <li>
                 <span>${s.quantidade}x ${s.nome}</span>
-                <span>${s.valor.toFixed(2)} cada</span>
-                <span>${(s.valor * s.quantidade).toFixed(2)}</span>
+                <span>${formatCurrency(s.valor)} cada</span>
+                <span>${formatCurrency(s.valor * s.quantidade)}</span>
             </li>
         `).join('');
 
@@ -1131,12 +1127,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         empresasCache = data; // Atualiza o cache de empresas
         console.log('[renderEmpresas] Empresas carregadas:', data); // Log de dados carregados
-        listaEmpresas.innerHTML = data.map(empresa => `
-            <div class="item-card">
-                <div><strong>${empresa.name}</strong><br><small>ID: ${empresa.id}</small></div>
-                <button class="delete-btn" data-id="${empresa.id}">Excluir</button>
-            </div>
-        `).join('');
+        // CORREÇÃO: Verifica se o `listaEmpresas` existe antes de manipular seu `innerHTML`
+        if (listaEmpresas) {
+            listaEmpresas.innerHTML = data.map(empresa => `
+                <div class="item-card">
+                    <div><strong>${empresa.name}</strong><br><small>ID: ${empresa.id}</small></div>
+                    <button class="delete-btn" data-id="${empresa.id}">Excluir</button>
+                </div>
+            `).join('');
+        }
         updateEmpresaSelectOptions(); // Atualiza o select de empresas para usuários
     }
 
@@ -1176,7 +1175,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function updateEmpresaSelectOptions() {
-        empresaUsuarioSelect.innerHTML = '<option value="">Selecione uma empresa</option>' + empresasCache.map(empresa => `<option value="${empresa.id}">${empresa.name}</option>`).join('');
+        // CORREÇÃO: Verifica se o `empresaUsuarioSelect` existe antes de manipular seu `innerHTML`
+        if (empresaUsuarioSelect) {
+            empresaUsuarioSelect.innerHTML = '<option value="">Selecione uma empresa</option>' + empresasCache.map(empresa => `<option value="${empresa.id}">${empresa.name}</option>`).join('');
+        }
     }
 
 
@@ -1201,17 +1203,20 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         console.log('[renderUsuarios] Usuários carregados:', data); // Log de dados carregados
-        listaUsuarios.innerHTML = data.map(usuario => `
-            <div class="item-card">
-                <div>
-                    <strong>${usuario.email}</strong><br>
-                    <small>Nome: ${usuario.full_name || 'N/A'}</small><br>
-                    <small>Permissão: ${usuario.role}</small><br>
-                    <small>Empresa: ${usuario.companies ? usuario.companies.name : 'N/A'}</small>
+        // CORREÇÃO: Verifica se o `listaUsuarios` existe antes de manipular seu `innerHTML`
+        if (listaUsuarios) {
+            listaUsuarios.innerHTML = data.map(usuario => `
+                <div class="item-card">
+                    <div>
+                        <strong>${usuario.email}</strong><br>
+                        <small>Nome: ${usuario.full_name || 'N/A'}</small><br>
+                        <small>Permissão: ${usuario.role}</small><br>
+                        <small>Empresa: ${usuario.companies ? usuario.companies.name : 'N/A'}</small>
+                    </div>
+                    <button class="delete-btn" data-id="${usuario.id}">Excluir</button>
                 </div>
-                <button class="delete-btn" data-id="${usuario.id}">Excluir</button>
-            </div>
-        `).join('');
+            `).join('');
+        }
         // Recarrega as empresas para o select de usuário
         await renderEmpresas(); 
     }
