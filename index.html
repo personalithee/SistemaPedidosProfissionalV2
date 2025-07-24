@@ -1,1306 +1,1156 @@
-<!DOCTYPE html>
+
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Pedidos</title>
-    <!-- Inclui o Supabase JS CDN -->
+    <title>Sistema de Gerenciamento de Pedidos</title>
+
+    <!-- CDNs para Supabase, jsPDF e html2canvas -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
     <style>
-        /* css/style.css */
-        body {
-            font-family: 'Inter', sans-serif; /* Usando Inter como padrão */
-            background-color: #f0f2f5;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start; /* Alinha ao topo para permitir rolagem */
-            min-height: 100vh;
-        }
+        /* ESTILOS GERAIS */
+        :root { --primary-color: #4a90e2; --secondary-color: #f5f7fa; --font-color: #333; --border-color: #ddd; --success-color: #28a745; --danger-color: #dc3545; --warning-color: #ffc107; --card-bg: #fff; --shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; background-color: var(--secondary-color); color: var(--font-color); margin: 0; padding: 0; }
+        h1, h2, h3 { color: var(--primary-color); }
 
-        .container {
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 1200px; /* Aumenta a largura máxima para um layout mais amplo */
-            margin: 20px;
-            overflow: hidden; /* Garante que o conteúdo não vaze */
-        }
+        /* ESTILOS DA TELA DE LOGIN */
+        #login-screen { display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: var(--secondary-color); padding: 20px; box-sizing: border-box; }
+        .login-container { background-color: var(--card-bg); padding: 40px; border-radius: 8px; box-shadow: var(--shadow); width: 100%; max-width: 400px; text-align: center; }
+        .login-container h1 { margin-bottom: 30px; }
+        .login-container .form-group { margin-bottom: 20px; text-align: left; }
+        .login-container label { display: block; margin-bottom: 8px; font-weight: bold; }
+        .login-container input[type="email"], .login-container input[type="password"] { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 5px; font-size: 16px; box-sizing: border-box; }
+        .login-container button { width: 100%; padding: 12px; background-color: var(--primary-color); color: white; border: none; border-radius: 5px; font-size: 18px; cursor: pointer; transition: background-color 0.3s; margin-top: 20px; }
+        .login-container button:hover { background-color: #357abd; }
+        .login-container button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .login-container .message { margin-top: 15px; padding: 10px; border-radius: 5px; font-size: 14px; }
+        .login-container .message.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .login-container .message.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
 
-        header {
-            background-color: #4a90e2; /* Cor azul para o cabeçalho */
-            color: white;
-            padding: 20px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #357bd8;
-        }
-
-        header h1 {
-            margin: 0;
-            font-size: 24px;
-        }
-
-        header p {
-            margin: 0;
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        #logout-button {
-            background-color: #dc3545; /* Vermelho para o botão Sair */
-            padding: 8px 15px;
-            border-radius: 5px;
-            font-size: 14px;
-            transition: background-color 0.3s ease;
-        }
-
-        #logout-button:hover {
-            background-color: #c82333;
-        }
-
-        nav {
-            background-color: #5a9be2; /* Azul um pouco mais claro para a navegação */
-            padding: 10px 30px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: flex-start; /* Alinha os botões à esquerda */
-            border-bottom: 1px solid #4a90e2;
-        }
-
-        nav button {
-            background-color: #4a90e2; /* Mesma cor do cabeçalho */
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        nav button:hover {
-            background-color: #357bd8;
-            transform: translateY(-2px);
-        }
-
-        main {
-            padding: 30px;
-        }
-
-        main section {
-            margin-bottom: 40px;
-            background-color: #f8f9fa; /* Fundo leve para as seções */
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        h2 {
-            color: #333;
-            font-size: 22px;
-            margin-top: 0;
-            margin-bottom: 25px;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
-        }
-
-        form {
-            display: grid; /* Usando grid para melhor organização do formulário */
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Colunas responsivas */
-            gap: 15px;
-            margin-bottom: 30px;
-            padding: 20px;
-            background-color: #e9ecef;
-            border-radius: 8px;
-        }
-
-        input[type="email"],
-        input[type="password"],
-        input[type="text"],
-        input[type="number"],
-        textarea,
-        select {
-            padding: 12px;
-            border: 1px solid #ced4da;
-            border-radius: 5px;
-            font-size: 16px;
-            width: 100%; /* Garante que ocupem a largura total */
-            box-sizing: border-box;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        input:focus, textarea:focus, select:focus {
-            border-color: #80bdff;
-            outline: 0;
-            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-        }
-
-        form button[type="submit"] {
-            grid-column: 1 / -1; /* Ocupa todas as colunas no grid */
-            padding: 12px 20px;
-            background-color: #28a745; /* Verde para botões de adicionar/salvar */
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 18px;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        form button[type="submit"]:hover {
-            background-color: #218838;
-            transform: translateY(-1px);
-        }
-
-        h3 {
-            color: #333;
-            font-size: 20px;
-            margin-top: 30px;
-            margin-bottom: 20px;
-        }
-
-        #clientes-list, #servicos-list, #pedidos-list, #companies-list, #users-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Layout de cards */
-            gap: 20px;
-            padding: 0;
-            list-style: none;
-        }
-
-        #clientes-list li, #servicos-list li, #pedidos-list li, #companies-list li, #users-list li {
-            background-color: #ffffff;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            position: relative;
-            overflow: hidden;
-        }
-
-        #clientes-list li strong, #servicos-list li strong, #pedidos-list li strong, #companies-list li strong, #users-list li strong {
-            font-size: 18px;
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        #clientes-list li span, #servicos-list li span, #pedidos-list li span, #companies-list li span, #users-list li span {
-            font-size: 14px;
-            color: #555;
-            line-height: 1.5;
-            margin-bottom: 10px;
-        }
-
-        #clientes-list li div, #servicos-list li div, #pedidos-list li div, #companies-list li div, #users-list li div {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            justify-content: flex-end; /* Alinha botões à direita */
-        }
-
-        .edit-cliente-btn, .edit-servico-btn, .edit-pedido-btn, .edit-company-btn, .edit-user-btn {
-            background-color: #ffc107; /* Amarelo para editar */
-            color: #333;
-            padding: 8px 15px;
-            border-radius: 5px;
-            font-size: 14px;
-            transition: background-color 0.3s ease;
-        }
-
-        .edit-cliente-btn:hover, .edit-servico-btn:hover, .edit-pedido-btn:hover, .edit-company-btn:hover, .edit-user-btn:hover {
-            background-color: #e0a800;
-        }
-
-        .delete-btn, .delete-servico-btn, .delete-pedido-btn, .delete-company-btn, .delete-user-btn {
-            background-color: #dc3545; /* Vermelho para excluir */
-            color: white;
-            padding: 8px 15px;
-            border-radius: 5px;
-            font-size: 14px;
-            transition: background-color 0.3s ease;
-        }
-
-        .delete-btn:hover, .delete-servico-btn:hover, .delete-pedido-btn:hover, .delete-company-btn:hover, .delete-user-btn:hover {
-            background-color: #c82333;
-        }
-
-        .admin-only {
-            background-color: #ffeeba; /* Cor de fundo para seções de admin */
-            border: 1px dashed #ffc107;
-            padding: 25px;
-            margin-bottom: 40px;
-            border-radius: 8px;
-        }
-
-        /* Responsividade para formulários em telas pequenas */
-        @media (max-width: 768px) {
-            form {
-                grid-template-columns: 1fr; /* Uma coluna em telas pequenas */
-            }
-            #clientes-list, #servicos-list, #pedidos-list, #companies-list, #users-list {
-                grid-template-columns: 1fr; /* Uma coluna para os cards em telas pequenas */
-            }
-        }
-
-        /* Estilo para a página de login - Melhorado */
-        body.login-page {
-            background-color: #e0e5ec; /* Fundo mais suave para a página de login */
-            display: flex;
-            justify-content: center;
-            align-items: center; /* Centraliza o container verticalmente */
-            min-height: 100vh;
-            padding: 0;
-        }
-
-        .login-page .container {
-            max-width: 450px; /* Largura menor para o formulário de login */
-            padding: 40px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15); /* Sombra mais pronunciada */
-            border-radius: 15px; /* Cantos mais arredondados */
-            text-align: center;
-            background: linear-gradient(145deg, #ffffff, #e6e6e6); /* Gradiente sutil */
-            border: none; /* Remove borda extra */
-        }
-
-        .login-page h1 {
-            color: #333;
-            font-size: 28px;
-            margin-bottom: 30px;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.05);
-        }
-
-        .login-page h2 {
-            color: #4a90e2; /* Cor principal para o título de login */
-            font-size: 24px;
-            margin-bottom: 25px;
-            border-bottom: none; /* Remove a borda inferior */
-        }
-
-        .login-page form {
-            background-color: transparent; /* Remove o fundo do formulário para o gradiente do container */
-            padding: 0;
-            box-shadow: none;
-            grid-template-columns: 1fr; /* Garante uma coluna */
-        }
-
-        .login-page input[type="email"],
-        .login-page input[type="password"] {
-            border: 1px solid #c0c0c0;
-            background-color: #f9f9f9;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.08); /* Sombra interna para profundidade */
-            border-radius: 8px; /* Cantos mais arredondados */
-        }
-
-        .login-page button[type="submit"] {
-            background: linear-gradient(145deg, #4a90e2, #357bd8); /* Gradiente para o botão */
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); /* Sombra mais forte */
-            font-weight: bold;
-            letter-spacing: 1px;
-            border-radius: 8px; /* Cantos mais arredondados */
-            transition: all 0.3s ease;
-        }
-
-        .login-page button[type="submit"]:hover {
-            background: linear-gradient(145deg, #357bd8, #2a6bb2);
-            transform: translateY(-3px); /* Efeito de elevação */
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-        }
-
-        .login-page p {
-            color: #666;
-            margin-top: 25px;
-            font-size: 14px;
-        }
-
-        .login-page header, .login-page nav, .login-page main {
-            display: none; /* Oculta cabeçalho, navegação e main na página de login */
-        }
+        /* ESTILOS DO SISTEMA PRINCIPAL (CONTENT & ABAS) */
+        .container { max-width: 1200px; margin: 0 auto; background-color: var(--card-bg); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; padding: 20px; } /* Adicionado padding aqui */
+        nav { display: flex; background-color: var(--primary-color); position: relative; }
+        nav button { flex-grow: 1; padding: 15px 20px; border: none; background-color: var(--primary-color); color: white; font-size: 16px; cursor: pointer; transition: background-color 0.3s; border-bottom: 4px solid transparent; }
+        nav button:hover { background-color: #357abd; }
+        nav button.active { background-color: #357abd; border-bottom: 4px solid #fff; }
+        #logout-btn-nav { background-color: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); font-size: 14px; transition: background-color 0.3s; z-index: 10; }
+        #logout-btn-nav:hover { background-color: #c82333; }
+        .tab-content { display: none; padding: 25px; }
+        .tab-content.active { display: block; }
+        h2 { border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 20px; }
+        form { background-color: var(--secondary-color); padding: 20px; border-radius: 8px; margin-bottom: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+        .form-group { display: flex; flex-direction: column; }
+        input, select, button { padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); font-size: 14px; }
+        button { cursor: pointer; background-color: var(--primary-color); color: white; border: none; transition: background-color 0.3s; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        button.add-btn { background-color: var(--success-color); }
+        button.delete-btn { background-color: var(--danger-color); padding: 5px 10px; font-size: 12px; }
+        .item-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+        .item-card, .pedido-card { background-color: var(--card-bg); padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+        .pedido-card { padding: 20px; box-shadow: var(--shadow); }
+        .pedido-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; flex-wrap: wrap; }
+        .pedido-header h3 { margin: 0; }
+        .pedido-header span { font-size: 13px; color: #666; }
+        .pedido-servicos-list { list-style: none; padding-left: 0; margin-bottom: 15px; }
+        .pedido-servicos-list li { border-bottom: 1px dashed #eee; padding: 5px 0; display: flex; justify-content: space-between; }
+        .pedido-valores { text-align: right; margin-bottom: 15px; }
+        .pedido-valores .preco-original { text-decoration: line-through; color: #888; font-size: 14px; }
+        .pedido-valores .desconto-valor { color: var(--success-color); font-weight: bold; font-size: 14px; }
+        .pedido-valores .preco-final { font-size: 22px; font-weight: bold; color: var(--primary-color); }
+        .pedido-status, .pedido-actions { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+        .status-group { display: flex; flex-direction: column; }
+        .status-group label { font-size: 12px; font-weight: bold; margin-bottom: 5px; }
+        #pedido-servicos-selecionados li { display: flex; justify-content: space-between; align-items: center; }
+        #total-pedido { font-size: 1.5em; font-weight: bold; margin-top: 10px; }
+        .loading { text-align: center; padding: 20px; font-style: italic; color: #888; }
+        .report-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .report-table th, .report-table td { border: 1px solid var(--border-color); padding: 12px; text-align: left; }
+        .report-table th { background-color: var(--primary-color); color: white; }
+        .report-table tbody tr:nth-child(even) { background-color: var(--secondary-color); }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background-color: white; padding: 30px; border-radius: 8px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+        #comprovante-container { border: 1px solid #ccc; padding: 20px; margin-bottom: 20px; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+        .cliente-grupo-pedidos { margin-bottom: 30px; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; background-color: var(--card-bg); }
+        .cliente-grupo-pedidos .item-list { grid-template-columns: 1fr; gap: 15px; }
     </style>
 </head>
-<body class="login-page">
-    <div class="container" id="app-container">
-        <!-- Conteúdo da página de login -->
-        <section id="login-section">
-            <h1>Bem-vindo ao Sistema de Pedidos!</h1>
-            <h2>Login</h2>
+<body>
+
+    <div id="login-screen">
+        <div class="login-container">
+            <h1>Login no Sistema</h1>
             <form id="login-form">
-                <input type="email" id="login-email" placeholder="Seu e-mail" required>
-                <input type="password" id="login-password" placeholder="Sua senha" required>
-                <button type="submit">Entrar</button>
+                <div class="form-group">
+                    <label for="email">E-mail:</label>
+                    <input type="email" id="email" required placeholder="seuemail@exemplo.com">
+                </div>
+                <div class="form-group">
+                    <label for="password">Senha:</label>
+                    <input type="password" id="password" required placeholder="••••••••">
+                </div>
+                <button type="submit" id="login-btn">Entrar</button>
             </form>
-            <p>Acesso restrito. Entre em contato com o administrador para criar uma conta.</p>
-        </section>
-
-        <!-- Conteúdo do Dashboard (inicialmente oculto) -->
-        <section id="dashboard-section" style="display: none;">
-            <header>
-                <h1>Bem-vindo ao Dashboard!</h1>
-                <p>Gerencie seus clientes, serviços e pedidos.</p>
-                <p>Usuário: <span id="user-email-display"></span> | Role: <span id="user-role-display"></span></p>
-                <button id="logout-button">Sair</button>
-            </header>
-
-            <nav>
-                <button id="show-clientes">Clientes</button>
-                <button id="show-servicos">Serviços</button>
-                <button id="show-pedidos">Pedidos</button>
-                <!-- Seções visíveis apenas para Administradores -->
-                <button id="show-companies" class="admin-feature" style="display: none;">Empresas</button>
-                <button id="show-users" class="admin-feature" style="display: none;">Usuários</button>
-            </nav>
-
-            <main>
-                <!-- Seção de Clientes -->
-                <section id="clientes-section" style="display: block;">
-                    <h2>Meus Clientes</h2>
-                    <form id="cliente-form">
-                        <input type="text" id="cliente-nome" placeholder="Nome do Cliente" required>
-                        <input type="email" id="cliente-email" placeholder="E-mail">
-                        <input type="text" id="cliente-telefone" placeholder="Telefone">
-                        <input type="text" id="cliente-endereco" placeholder="Endereço">
-                        <input type="text" id="cliente-cnpj-cpf" placeholder="CNPJ/CPF">
-                        <input type="text" id="cliente-responsavel" placeholder="Responsável">
-                        <button type="submit">Adicionar Cliente</button>
-                    </form>
-                    <h3>Lista de Clientes</h3>
-                    <ul id="clientes-list">
-                        <!-- Clientes serão carregados aqui -->
-                    </ul>
-                </section>
-
-                <!-- Seção de Serviços -->
-                <section id="servicos-section" style="display: none;">
-                    <h2>Meus Serviços</h2>
-                    <form id="servico-form">
-                        <input type="text" id="servico-nome" placeholder="Nome do Serviço" required>
-                        <textarea id="servico-descricao" placeholder="Descrição do Serviço"></textarea>
-                        <input type="number" id="servico-preco" placeholder="Preço" step="0.01" required>
-                        <button type="submit">Adicionar Serviço</button>
-                    </form>
-                    <h3>Lista de Serviços</h3>
-                    <ul id="servicos-list">
-                        <!-- Serviços serão carregados aqui -->
-                    </ul>
-                </section>
-
-                <!-- Seção de Pedidos -->
-                <section id="pedidos-section" style="display: none;">
-                    <h2>Meus Pedidos</h2>
-                    <form id="pedido-form">
-                        <select id="pedido-cliente-select" required>
-                            <option value="">Selecione um Cliente</option>
-                            <!-- Clientes serão carregados aqui dinamicamente -->
-                        </select>
-                        <!-- Campos para adicionar serviços ao pedido -->
-                        <div style="grid-column: 1 / -1; background: #fff; padding: 15px; border-radius: 5px; margin-top: 10px;">
-                            <h4>Adicionar Serviços ao Pedido</h4>
-                            <div style="display: flex; gap: 10px; align-items: flex-end;">
-                                <div style="flex-grow: 3;"><label for="servico-pedido">Serviço</label><select id="servico-pedido"></select></div>
-                                <div style="flex-grow: 1;"><label for="quantidade-servico">Qtde.</label><input type="number" id="quantidade-servico" value="1" min="1"></div>
-                                <button type="button" id="add-servico-pedido-btn" style="background-color: #28a745; color: white; border: none; border-radius: 5px; padding: 10px 15px; cursor: pointer;">Adicionar</button>
-                            </div>
-                            <ul id="pedido-servicos-selecionados" style="list-style: none; padding: 0; margin-top: 10px;"></ul>
-                        </div>
-                        <div class="form-group"><label for="desconto-pedido">Desconto (R$)</label><input type="number" id="desconto-pedido" step="0.01" min="0" value="0"></div>
-                        <div class="form-group" style="text-align: right;"><label>Valor Total</label><div id="total-pedido">R$ 0,00</div></div>
-                        <button type="submit">Criar Pedido</button>
-                    </form>
-                    <h3>Lista de Pedidos</h3>
-                    <ul id="pedidos-list">
-                        <!-- Pedidos serão carregados aqui -->
-                    </ul>
-                </section>
-
-                <!-- Seção de Gerenciamento de Empresas (APENAS ADMIN) -->
-                <section id="companies-section" class="admin-only" style="display: none;">
-                    <h2>Gerenciar Empresas</h2>
-                    <form id="company-form">
-                        <input type="text" id="company-name" placeholder="Nome da Nova Empresa" required>
-                        <button type="submit">Criar Empresa</button>
-                    </form>
-                    <h3>Lista de Empresas</h3>
-                    <ul id="companies-list">
-                        <!-- Empresas serão carregadas aqui -->
-                    </ul>
-                </section>
-
-                <!-- Seção de Gerenciamento de Usuários (APENAS ADMIN) -->
-                <section id="users-section" class="admin-only" style="display: none;">
-                    <h2>Gerenciar Usuários</h2>
-                    <form id="user-creation-form">
-                        <input type="email" id="new-user-email" placeholder="E-mail do Novo Usuário" required>
-                        <input type="password" id="new-user-password" placeholder="Senha do Novo Usuário" required>
-                        <input type="text" id="new-user-full-name" placeholder="Nome Completo (Opcional)">
-                        <select id="new-user-role" required>
-                            <option value="user">Usuário Comum</option>
-                            <option value="admin">Administrador</option>
-                        </select>
-                        <select id="new-user-company-select" required>
-                            <option value="">Selecione a Empresa</option>
-                            <!-- Empresas serão carregadas aqui dinamicamente -->
-                        </select>
-                        <button type="submit">Criar Usuário</button>
-                    </form>
-                    <h3>Lista de Usuários</h3>
-                    <ul id="users-list">
-                        <!-- Usuários serão carregados aqui -->
-                    </ul>
-                </section>
-            </main>
-        </section>
+            <div id="message" class="message" style="display: none;"></div>
+            <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
+                Não tem uma conta? Entre em contato para criar seu acesso.
+            </p>
+        </div>
     </div>
 
-    <script>
-        // js/auth.js E js/dashboard.js COMBINADOS AQUI
+    <div class="container" id="main-system" style="display: none;">
+        <nav id="main-nav">
+            <button class="nav-btn active" data-tab="servicos">Serviços</button>
+            <button class="nav-btn" data-tab="clientes">Clientes</button>
+            <button class="nav-btn" data-tab="pedidos">Pedidos</button>
+            <button class="nav-btn" data-tab="relatorio">Relatório</button>
+            <button class="nav-btn admin-feature" data-tab="empresas" style="display: none;">Empresas</button>
+            <button class="nav-btn admin-feature" data-tab="usuarios" style="display: none;">Usuários</button>
+            <button id="logout-btn-nav">Sair</button>
+        </nav>
 
-        // CONFIGURAÇÃO DO SUPABASE (Substitua com suas chaves do novo projeto)
-        const SUPABASE_URL = 'https://lwocvzymhkwvjlsarflf.supabase.co'; // Ex: https://abcdefghijklm.supabase.co
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3b2N2enltaGt3dmpsc2FyZmxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxOTM1OTUsImV4cCI6MjA2ODc2OTU5NX0.ucW4LCE7bE_vKlHcGSP55By-Z5MVPCGv6vRaClr1lv4'; // Chave "anon public"
+        <div id="servicos-tab" class="tab-content active">
+            <h2>Gerenciar Serviços</h2>
+            <form id="form-servico">
+                <div class="form-group"><label for="nome-servico">Nome do Serviço</label><input type="text" id="nome-servico" required></div>
+                <div class="form-group"><label for="valor-servico">Valor (R$)</label><input type="number" id="valor-servico" step="0.01" min="0" required></div>
+                <button type="submit" id="btn-add-servico" style="grid-column: 1 / -1;">Adicionar Serviço</button>
+            </form>
+            <h3>Serviços Cadastrados</h3>
+            <div id="lista-servicos" class="item-list"></div>
+        </div>
 
-        const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        <div id="clientes-tab" class="tab-content">
+            <h2>Gerenciar Clientes</h2>
+            <form id="form-cliente">
+                <div class="form-group"><label for="nome-cliente">Nome do Cliente</label><input type="text" id="nome-cliente" required></div>
+                <div class="form-group"><label for="email-cliente">Email</label><input type="email" id="email-cliente"></div>
+                <div class="form-group"><label for="telefone-cliente">Telefone</label><input type="tel" id="telefone-cliente"></div>
+                <button type="submit" id="btn-add-cliente" style="grid-column: 1 / -1;">Adicionar Cliente</button>
+            </form>
+            <h3>Clientes Cadastrados</h3>
+            <div id="lista-clientes" class="item-list"></div>
+        </div>
 
-        let currentUserCompanyId = null; // Armazenará o company_id do usuário logado
-        let currentUserRole = null;     // Armazenará a role do usuário logado
+        <div id="pedidos-tab" class="tab-content">
+            <h2>Criar Novo Pedido</h2>
+            <form id="form-pedido">
+                <div class="form-group" style="grid-column: 1 / -1;"><label for="cliente-pedido">Cliente</label><select id="cliente-pedido" required></select></div>
+                <div class="form-group" style="grid-column: 1 / -1; background: #fff; padding: 15px; border-radius: 5px;">
+                    <h4>Adicionar Serviços ao Pedido</h4>
+                    <div style="display: flex; gap: 10px; align-items: flex-end;">
+                        <div class="form-group" style="flex-grow: 3;"><label for="servico-pedido">Serviço</label><select id="servico-pedido"></select></div>
+                        <div class="form-group" style="flex-grow: 1;"><label for="quantidade-servico">Qtde.</label><input type="number" id="quantidade-servico" value="1" min="1"></div>
+                        <button type="button" id="add-servico-pedido-btn" class="add-btn">Adicionar</button>
+                    </div>
+                    <ul id="pedido-servicos-selecionados"></ul>
+                </div>
+                <div class="form-group"><label for="desconto-pedido">Desconto (R$)</label><input type="number" id="desconto-pedido" step="0.01" min="0" value="0"></div>
+                <div class="form-group" style="text-align: right;"><label>Valor Total</label><div id="total-pedido">R$ 0,00</div></div>
+                <button type="submit" id="btn-add-pedido" style="grid-column: 1 / -1;">Criar Pedido</button>
+            </form>
+            <h2>Pedidos Ativos</h2>
+            <div id="lista-pedidos" class="item-list"></div>
+        </div>
 
-        // --- Elementos do DOM ---
-        const loginSection = document.getElementById('login-section');
-        const dashboardSection = document.getElementById('dashboard-section'); // Nova seção para o dashboard
-        const loginForm = document.getElementById('login-form');
-        const logoutButton = document.getElementById('logout-button');
-        const userEmailDisplay = document.getElementById('user-email-display');
-        const userRoleDisplay = document.getElementById('user-role-display');
+        <div id="relatorio-tab" class="tab-content">
+            <h2>Relatório de Pedidos (Últimos 30 dias)</h2>
+            <button id="exportar-relatorio-pdf">Exportar Relatório para PDF</button>
+            
+            <div id="resumo-pendencias" style="margin-top: 20px; padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--secondary-color);">
+                <h3>Resumo de Valores Pendentes por Cliente</h3>
+                <div id="lista-resumo-pendencias">
+                    <p class="loading">Calculando pendências...</p>
+                </div>
+            </div>
 
-        const clientesSection = document.getElementById('clientes-section');
-        const servicosSection = document.getElementById('servicos-section');
-        const pedidosSection = document.getElementById('pedidos-section');
-        const companiesSection = document.getElementById('companies-section');
-        const usersSection = document.getElementById('users-section');
+            <div id="relatorio-container">
+                <table class="report-table" id="tabela-relatorio">
+                    <thead><tr><th>ID Pedido</th><th>Cliente</th><th>Data Solicitação</th><th>Data Entrega</th><th>Valor Total</th><th>Status Pagamento</th><th>Status Entrega</th></tr></thead>
+                    <tbody id="corpo-tabela-relatorio"></tbody>
+                </table>
+            </div>
+        </div>
 
-        const showClientesBtn = document.getElementById('show-clientes');
-        const showServicosBtn = document.getElementById('show-servicos');
-        const showPedidosBtn = document.getElementById('show-pedidos');
-        const showCompaniesBtn = document.getElementById('show-companies');
-        const showUsersBtn = document.getElementById('show-users');
+        <!-- Seção de Gerenciamento de Empresas (APENAS ADMIN) -->
+        <div id="empresas-tab" class="tab-content admin-only" style="display: none;">
+            <h2>Gerenciar Empresas</h2>
+            <form id="form-empresa">
+                <div class="form-group"><label for="nome-empresa">Nome da Empresa</label><input type="text" id="nome-empresa" required></div>
+                <button type="submit" id="btn-add-empresa" style="grid-column: 1 / -1;">Adicionar Empresa</button>
+            </form>
+            <h3>Empresas Cadastradas</h3>
+            <div id="lista-empresas" class="item-list"></div>
+        </div>
 
-        // --- Funções de Autenticação e Verificação ---
-        async function checkAuthAndDisplayContent() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                // Se não houver usuário logado, mostra a tela de login
-                document.body.classList.add('login-page');
-                loginSection.style.display = 'block';
-                dashboardSection.style.display = 'none';
-            } else {
-                // Se houver usuário, mostra o dashboard e busca o perfil
-                document.body.classList.remove('login-page');
-                loginSection.style.display = 'none';
-                dashboardSection.style.display = 'block';
-                await fetchUserProfile(user.id);
-            }
-        }
+        <!-- Seção de Gerenciamento de Usuários (APENAS ADMIN) -->
+        <div id="usuarios-tab" class="tab-content admin-only" style="display: none;">
+            <h2>Gerenciar Usuários</h2>
+            <form id="form-usuario">
+                <div class="form-group"><label for="email-usuario">Email</label><input type="email" id="email-usuario" required></div>
+                <div class="form-group"><label for="senha-usuario">Senha (deixe em branco para não alterar)</label><input type="password" id="senha-usuario"></div>
+                <div class="form-group"><label for="nome-completo-usuario">Nome Completo</label><input type="text" id="nome-completo-usuario"></div>
+                <div class="form-group"><label for="role-usuario">Permissão</label>
+                    <select id="role-usuario" required>
+                        <option value="user">Usuário</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <div class="form-group"><label for="empresa-usuario">Empresa</label>
+                    <select id="empresa-usuario" required>
+                        <option value="">Selecione uma empresa</option>
+                    </select>
+                </div>
+                <button type="submit" id="btn-add-usuario" style="grid-column: 1 / -1;">Adicionar Usuário</button>
+            </form>
+            <h3>Usuários Cadastrados</h3>
+            <div id="lista-usuarios" class="item-list"></div>
+        </div>
 
-        async function fetchUserProfile(userId) {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('email, role, company_id')
-                .eq('id', userId)
-                .single();
+    </div>
+    <div class="modal-overlay" id="comprovante-modal">
+        <div class="modal-content">
+            <h2>Comprovante de Pedido</h2>
+            <div id="comprovante-container"></div>
+            <div class="modal-actions">
+                <button id="export-comprovante-png">Exportar PNG</button>
+                <button id="export-comprovante-pdf">Exportar PDF</button>
+                <button id="fechar-modal" class="delete-btn">Fechar</button>
+            </div>
+        </div>
+    </div>
 
-            if (error) {
-                console.error('Erro ao buscar perfil do usuário:', error.message);
-                alert('Não foi possível carregar o seu perfil. Por favor, tente novamente ou entre em contato com o suporte.');
-                await supabase.auth.signOut();
-                checkAuthAndDisplayContent(); // Redireciona para login
-            } else if (data) {
-                currentUserCompanyId = data.company_id;
-                currentUserRole = data.role;
-                userEmailDisplay.textContent = data.email;
-                userRoleDisplay.textContent = data.role;
+<script>
+document.addEventListener('DOMContentLoaded', () => {
 
-                console.log(`Usuário logado: ${data.email}, Role: ${currentUserRole}, Company ID: ${currentUserCompanyId}`);
+    // =================================================================================
+    // ================== CONFIGURAÇÃO DO SUPABASE (SUAS CHAVES REAIS) =================
+    // =================================================================================
+    const SUPABASE_URL = 'https://lwocvzymhkwvjlsarflf.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3b2N2enltaGt3dmpsc2FyZmxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxOTM1OTUsImV4cCI6MjA2ODc2OTU5NX0.ucW4LCE7bE_vKlHcGSP55By-Z5MVPCGv6vRaClr1lv4';
+    // =================================================================================
+    // =================================================================================
+    
+    // CORREÇÃO: Acessa o objeto global 'supabase' (minúsculo) exposto pelo CDN
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    const { jsPDF } = window.jspdf;
 
-                // Carrega os dados dependendo da role e company_id
-                loadClientes();
-                loadServicos();
-                loadPedidos();
-                loadClientesForPedidoSelect();
+    let servicosNoPedidoAtual = [];
+    let servicosCache = [];
+    let clientesCache = [];
+    let empresasCache = []; // Cache para empresas
+    let currentUserRole = 'guest'; // Padrão inicial antes da verificação
+    let currentUserCompanyId = null; // ID da empresa do usuário logado
 
-                // Mostra/Oculta seções de admin
-                if (currentUserRole === 'admin') {
-                    document.querySelectorAll('.admin-feature').forEach(btn => btn.style.display = 'block');
-                    showSection(clientesSection); // Por padrão, mostra clientes para admin também
-                    loadCompanies(); // Carrega empresas para o admin
-                    loadUsers();     // Carrega usuários para o admin
-                    loadCompaniesForUserSelect(); // Carrega empresas para o select de criação de usuário
-                } else {
-                    document.querySelectorAll('.admin-feature').forEach(btn => btn.style.display = 'none');
-                    showSection(clientesSection); // Usuário comum sempre começa na seção de clientes
-                }
-            }
-        }
+    // --- VARIÁVEIS E ELEMENTOS DA TELA DE LOGIN ---
+    const loginScreen = document.getElementById('login-screen');
+    const mainSystem = document.getElementById('main-system');
+    const loginForm = document.getElementById('login-form');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const loginBtn = document.getElementById('login-btn');
+    const messageDiv = document.getElementById('message');
 
-        async function handleLogout() {
-            const { error } = await supabase.auth.signOut();
-            if (error) {
-                console.error('Erro ao fazer logout:', error.message);
-                alert('Erro ao sair: ' + error.message);
-            } else {
-                checkAuthAndDisplayContent(); // Volta para a tela de login
-            }
-        }
+    // --- FUNÇÕES AUXILIARES ---
+    const formatCurrency = (value) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'N/A';
+    const showLoading = (listElement) => listElement.innerHTML = '<p class="loading">Carregando dados...</p>';
+    const showAlertError = (error, message = 'Ocorreu um erro ao comunicar com o banco de dados.') => {
+        console.error('Erro Supabase:', error);
+        alert(`${message}\nVerifique o console para mais detalhes.`);
+    };
+    function showMessage(text, type) {
+        messageDiv.textContent = text;
+        messageDiv.className = `message ${type}`;
+        messageDiv.style.display = 'block';
+    }
 
-        // --- Funções para Gerenciar a Interface das Seções ---
-        function showSection(sectionToShow) {
-            console.log(`[showSection] Tentando exibir a seção: ${sectionToShow.id}`); // Log adicionado
-            clientesSection.style.display = 'none';
-            servicosSection.style.display = 'none';
-            pedidosSection.style.display = 'none';
-            companiesSection.style.display = 'none';
-            usersSection.style.display = 'none';
-            sectionToShow.style.display = 'block';
-            console.log(`[showSection] Estilo de exibição de ${sectionToShow.id} definido para: ${sectionToShow.style.display}`); // Log adicionado
-        }
+    // --- LÓGICA DO FORMULÁRIO DE LOGIN ---
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Entrando...';
+        messageDiv.style.display = 'none';
 
-        showClientesBtn.addEventListener('click', () => showSection(clientesSection));
-        showServicosBtn.addEventListener('click', () => showSection(servicosSection));
-        showPedidosBtn.addEventListener('click', () => {
-            showSection(pedidosSection);
-            loadClientesForPedidoSelect(); // Recarrega clientes para o select ao abrir a aba
-        });
-        showCompaniesBtn.addEventListener('click', () => { // Novo listener
-            console.log('[show-companies button] Botão "Empresas" clicado.'); // Log adicionado
-            showSection(companiesSection);
-            loadCompanies();
-        });
-        showUsersBtn.addEventListener('click', () => {     // Novo listener
-            showSection(usersSection);
-            loadUsers();
-            loadCompaniesForUserSelect(); // Recarrega empresas para o select de usuário
-        });
+        const email = emailInput.value;
+        const password = passwordInput.value;
 
-        // --- Listener do Formulário de Login ---
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = loginForm['login-email'].value;
-            const password = loginForm['login-password'].value;
-
-            const { data, error } = await supabase.auth.signInWithPassword({
+        try {
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
                 email: email,
                 password: password,
             });
 
             if (error) {
-                console.error('Erro no login:', error.message);
-                alert('Erro no login: ' + error.message);
-            } else if (data.user) {
-                console.log('Login bem-sucedido:', data.user);
-
-                // *** IMPORTANTE: Garante que o perfil do usuário seja criado/atualizado no primeiro login ***
-                const { error: rpcError } = await supabase.rpc('create_profile_for_user', {
-                    user_id: data.user.id,
-                    user_email: data.user.email,
-                    user_role: 'user', // Role padrão inicial, será atualizada para 'admin' manualmente no Supabase
-                    user_company_id: null // Será gerado na função se não existir, ou você pode passar um UUID específico aqui se for uma empresa já existente
-                });
-
-                if (rpcError) {
-                    console.error('Erro ao garantir perfil via RPC no login:', rpcError.message);
-                    alert('Erro ao configurar seu perfil. Por favor, tente fazer login novamente.');
-                    await supabase.auth.signOut(); // Força o logout se o perfil não puder ser criado
-                    checkAuthAndDisplayContent();
+                if (error.message.includes('Invalid login credentials')) {
+                    showMessage('Credenciais de login inválidas. Verifique seu e-mail e senha.', 'error');
                 } else {
-                    console.log('Perfil do usuário verificado/criado via RPC no login.');
-                    alert('Login bem-sucedido!');
-                    checkAuthAndDisplayContent(); // Atualiza a UI para o dashboard
+                    showMessage(`Erro ao fazer login: ${error.message}`, 'error');
                 }
+                console.error('Erro de login:', error);
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Entrar';
+            } else {
+                showMessage('Login realizado com sucesso! Carregando sistema...', 'success');
+                // Chame a função que inicializa o sistema após login
+                await initSystem(); 
             }
-        });
+        } catch (err) {
+            showMessage('Ocorreu um erro inesperado. Tente novamente.', 'error');
+            console.error('Erro geral:', err);
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Entrar';
+        }
+    });
 
-        // --- Funções CRUD (Clientes como Exemplo) ---
+    // --- NAVEGAÇÃO E CONTROLE DE ACESSO POR ROLE ---
+    const navButtons = document.querySelectorAll('.nav-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    const mainNav = document.getElementById('main-nav');
+    mainNav.addEventListener('click', handleNavClick);
 
-        // Carregar Clientes
-        async function loadClientes() {
-            if (!currentUserCompanyId && currentUserRole !== 'admin') {
-                console.warn('company_id ou role de admin não disponível para carregar clientes.');
+    function handleNavClick(e) {
+        if (e.target.tagName !== 'BUTTON') return;
+        const tabId = e.target.dataset.tab;
+
+        // Controle de acesso baseado na role
+        // Seções de "Serviços", "Clientes" e "Relatório" são para admins
+        if (currentUserRole === 'user') {
+            if (tabId === 'servicos' || tabId === 'clientes' || tabId === 'relatorio' || tabId === 'empresas' || tabId === 'usuarios') {
+                alert('Você não tem permissão para acessar esta seção.');
                 return;
             }
-            const query = supabase.from('clientes').select('*');
-            if (currentUserRole !== 'admin') {
-                query.eq('company_id', currentUserCompanyId);
-            }
-
-            const { data, error } = await query;
-
-            if (error) {
-                console.error('Erro ao carregar clientes:', error.message);
-                alert('Erro ao carregar clientes: ' + error.message);
-            } else {
-                const clientesList = document.getElementById('clientes-list');
-                clientesList.innerHTML = '';
-                if (data.length === 0) {
-                    clientesList.innerHTML = '<p>Nenhum cliente cadastrado ainda.</p>';
-                    return;
-                }
-                data.forEach(cliente => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <span>
-                            <strong>${cliente.nome}</strong> (${cliente.email || 'N/A'}) <br>
-                            Tel: ${cliente.telefone || 'N/A'} - End: ${cliente.endereco || 'N/A'} <br>
-                            CNPJ/CPF: ${cliente.cnpj_cpf || 'N/A'} - Resp: ${cliente.responsavel || 'N/A'}
-                        </span>
-                        <div>
-                            <button data-id="${cliente.id}" class="edit-cliente-btn">Editar</button>
-                            <button data-id="${cliente.id}" class="delete-btn">Excluir</button>
-                        </div>
-                    `;
-                    clientesList.appendChild(li);
-                });
-                addClienteActionListeners();
-            }
         }
 
-        // Adicionar/Editar Cliente
-        document.getElementById('cliente-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!currentUserCompanyId && currentUserRole !== 'admin') {
-                alert('Erro: ID da empresa ou role de admin não disponível. Tente recarregar a página.');
-                return;
-            }
+        navButtons.forEach(btn => btn.classList.remove('active'));
+        e.target.classList.add('active');
+        tabContents.forEach(content => content.classList.toggle('active', content.id === `${tabId}-tab`));
+        
+        // Renderiza o conteúdo da aba selecionada
+        if (tabId === 'relatorio') renderRelatorio();
+        else if (tabId === 'servicos') renderServicos();
+        else if (tabId === 'clientes') renderClientes();
+        else if (tabId === 'pedidos') renderPedidos();
+        else if (tabId === 'empresas') renderEmpresas(); // Novo
+        else if (tabId === 'usuarios') renderUsuarios(); // Novo
+    }
 
-            const nome = document.getElementById('cliente-nome').value;
-            const email = document.getElementById('cliente-email').value;
-            const telefone = document.getElementById('cliente-telefone').value;
-            const endereco = document.getElementById('cliente-endereco').value;
-            const cnpj_cpf = document.getElementById('cliente-cnpj-cpf').value;
-            const responsavel = document.getElementById('cliente-responsavel').value;
-
-            const currentClienteId = e.target.dataset.editingId;
-
-            let dbOperation;
-            if (currentClienteId) {
-                dbOperation = supabase
-                    .from('clientes')
-                    .update({ nome, email, telefone, endereco, cnpj_cpf, responsavel })
-                    .eq('id', currentClienteId)
-                    .eq('company_id', currentUserCompanyId);
-            } else {
-                dbOperation = supabase
-                    .from('clientes')
-                    .insert([
-                        {
-                            nome, email, telefone, endereco, cnpj_cpf, responsavel,
-                            company_id: currentUserCompanyId
-                        }
-                    ]);
-            }
-
-            const { error } = await dbOperation;
-
-            if (error) {
-                console.error('Erro ao salvar cliente:', error.message);
-                alert('Erro ao salvar cliente: ' + error.message);
-            } else {
-                alert(currentClienteId ? 'Cliente atualizado com sucesso!' : 'Cliente adicionado com sucesso!');
-                document.getElementById('cliente-form').reset();
-                delete e.target.dataset.editingId;
-                e.target.querySelector('button[type="submit"]').textContent = 'Adicionar Cliente';
-                loadClientes();
-                loadClientesForPedidoSelect();
-            }
-        });
-
-        // Preencher formulário para edição
-        async function editCliente(id) {
-            const { data, error } = await supabase
-                .from('clientes')
-                .select('*')
-                .eq('id', id)
-                .eq('company_id', currentUserCompanyId)
-                .single();
-
-            if (error) {
-                console.error('Erro ao buscar cliente para edição:', error.message);
-                alert('Erro ao carregar dados do cliente para edição.');
-            } else if (data) {
-                document.getElementById('cliente-nome').value = data.nome;
-                document.getElementById('cliente-email').value = data.email;
-                document.getElementById('cliente-telefone').value = data.telefone;
-                document.getElementById('cliente-endereco').value = data.endereco;
-                document.getElementById('cliente-cnpj-cpf').value = data.cnpj_cpf;
-                document.getElementById('cliente-responsavel').value = data.responsavel;
-                document.getElementById('cliente-form').dataset.editingId = data.id;
-                document.getElementById('cliente-form').querySelector('button[type="submit"]').textContent = 'Atualizar Cliente';
-            }
+    // Função de Logout
+    document.getElementById('logout-btn-nav').addEventListener('click', async () => {
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) {
+            showAlertError(error, 'Erro ao fazer logout.');
+        } else {
+            currentUserRole = 'guest'; // Resetar a role
+            currentUserCompanyId = null; // Resetar company_id
+            loginScreen.style.display = 'flex';
+            mainSystem.style.display = 'none';
+            showMessage('Você foi desconectado.', 'success');
+            // Opcional: Recarregar a página para garantir estado limpo
+            // window.location.reload(); 
         }
+    });
 
-        // Excluir Cliente
-        async function deleteCliente(id) {
-            const { error } = await supabase
-                .from('clientes')
-                .delete()
-                .eq('id', id)
-                .eq('company_id', currentUserCompanyId);
+    // Função para inicializar o sistema após o login ou ao carregar a página
+    async function initSystem() {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (user) {
+            loginScreen.style.display = 'none';
+            mainSystem.style.display = 'block';
 
-            if (error) {
-                console.error('Erro ao excluir cliente:', error.message);
-                alert('Erro ao excluir cliente: ' + error.message);
-            } else {
-                alert('Cliente excluído com sucesso!');
-                loadClientes();
-                loadClientesForPedidoSelect();
-            }
-        }
-
-        function addClienteActionListeners() {
-            document.querySelectorAll('#clientes-list .delete-btn').forEach(button => {
-                button.onclick = () => {
-                    if (confirm('Tem certeza que deseja excluir este cliente?')) {
-                        deleteCliente(button.dataset.id);
-                    }
-                };
-            });
-            document.querySelectorAll('#clientes-list .edit-cliente-btn').forEach(button => {
-                button.onclick = () => editCliente(button.dataset.id);
-            });
-        }
-
-        // --- Funções CRUD para Serviços ---
-        async function loadServicos() {
-            if (!currentUserCompanyId && currentUserRole !== 'admin') return;
-            const query = supabase.from('servicos').select('*');
-            if (currentUserRole !== 'admin') {
-                query.eq('company_id', currentUserCompanyId);
-            }
-            const { data, error } = await query;
-
-            if (error) {
-                console.error('Erro ao carregar serviços:', error.message);
-                alert('Erro ao carregar serviços: ' + error.message);
-            } else {
-                const servicosList = document.getElementById('servicos-list');
-                servicosList.innerHTML = '';
-                if (data.length === 0) {
-                    servicosList.innerHTML = '<p>Nenhum serviço cadastrado ainda.</p>';
-                    return;
-                }
-                data.forEach(servico => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <span>
-                            <strong>${servico.nome}</strong> (R$ ${servico.preco.toFixed(2)})<br>
-                            Descrição: ${servico.descricao || 'N/A'}
-                        </span>
-                        <div>
-                            <button data-id="${servico.id}" class="edit-servico-btn">Editar</button>
-                            <button data-id="${servico.id}" class="delete-servico-btn">Excluir</button>
-                        </div>
-                    `;
-                    servicosList.appendChild(li);
-                });
-                addServicoActionListeners();
-            }
-        }
-
-        document.getElementById('servico-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!currentUserCompanyId && currentUserRole !== 'admin') return;
-
-            const nome = document.getElementById('servico-nome').value;
-            const descricao = document.getElementById('servico-descricao').value;
-            const preco = parseFloat(document.getElementById('servico-preco').value);
-
-            const currentServicoId = e.target.dataset.editingId;
-
-            let dbOperation;
-            if (currentServicoId) {
-                dbOperation = supabase
-                    .from('servicos')
-                    .update({ nome, descricao, preco })
-                    .eq('id', currentServicoId)
-                    .eq('company_id', currentUserCompanyId);
-            } else {
-                dbOperation = supabase
-                    .from('servicos')
-                    .insert([
-                        {
-                            nome, descricao, preco,
-                            company_id: currentUserCompanyId
-                        }
-                    ]);
-            }
-
-            const { error } = await dbOperation;
-
-            if (error) {
-                console.error('Erro ao salvar serviço:', error.message);
-                alert('Erro ao salvar serviço: ' + error.message);
-            } else {
-                alert(currentServicoId ? 'Serviço atualizado com sucesso!' : 'Serviço adicionado com sucesso!');
-                document.getElementById('servico-form').reset();
-                delete e.target.dataset.editingId;
-                e.target.querySelector('button[type="submit"]').textContent = 'Adicionar Serviço';
-                loadServicos();
-            }
-        });
-
-        async function editServico(id) {
-            const { data, error } = await supabase
-                .from('servicos')
-                .select('*')
-                .eq('id', id)
-                .eq('company_id', currentUserCompanyId)
-                .single();
-
-            if (error) {
-                console.error('Erro ao buscar serviço para edição:', error.message);
-                alert('Erro ao carregar dados do serviço para edição.');
-            } else if (data) {
-                document.getElementById('servico-nome').value = data.nome;
-                document.getElementById('servico-descricao').value = data.descricao;
-                document.getElementById('servico-preco').value = data.preco;
-                document.getElementById('servico-form').dataset.editingId = data.id;
-                document.getElementById('servico-form').querySelector('button[type="submit"]').textContent = 'Atualizar Serviço';
-            }
-        }
-
-        async function deleteServico(id) {
-            const { error } = await supabase
-                .from('servicos')
-                .delete()
-                .eq('id', id)
-                .eq('company_id', currentUserCompanyId);
-
-            if (error) {
-                console.error('Erro ao excluir serviço:', error.message);
-                alert('Erro ao excluir serviço: ' + error.message);
-            } else {
-                alert('Serviço excluído com sucesso!');
-                loadServicos();
-            }
-        }
-
-        function addServicoActionListeners() {
-            document.querySelectorAll('#servicos-list .delete-servico-btn').forEach(button => {
-                button.onclick = () => {
-                    if (confirm('Tem certeza que deseja excluir este serviço?')) {
-                        deleteServico(button.dataset.id);
-                    }
-                };
-            });
-            document.querySelectorAll('#servicos-list .edit-servico-btn').forEach(button => {
-                button.onclick = () => editServico(button.dataset.id);
-            });
-        }
-
-
-        // --- Funções CRUD para Pedidos ---
-        async function loadClientesForPedidoSelect() {
-            if (!currentUserCompanyId && currentUserRole !== 'admin') return;
-            const query = supabase.from('clientes').select('id, nome');
-            if (currentUserRole !== 'admin') {
-                query.eq('company_id', currentUserCompanyId);
-            }
-            const { data, error } = await query;
-
-            if (error) {
-                console.error('Erro ao carregar clientes para o select:', error.message);
-            } else {
-                const selectElement = document.getElementById('pedido-cliente-select');
-                selectElement.innerHTML = '<option value="">Selecione um Cliente</option>'; // Limpa e adiciona opção padrão
-                data.forEach(cliente => {
-                    const option = document.createElement('option');
-                    option.value = cliente.id;
-                    option.textContent = cliente.nome;
-                    selectElement.appendChild(option);
-                });
-            }
-        }
-
-        async function loadPedidos() {
-            if (!currentUserCompanyId && currentUserRole !== 'admin') return;
-            const query = supabase.from('pedidos').select('*, clientes(nome)'); // Seleciona dados do pedido e o nome do cliente relacionado
-            if (currentUserRole !== 'admin') {
-                query.eq('company_id', currentUserCompanyId);
-            }
-            const { data, error } = await query.order('created_at', { ascending: false }); // Ordena pelos mais recentes
-
-            if (error) {
-                console.error('Erro ao carregar pedidos:', error.message);
-                alert('Erro ao carregar pedidos: ' + error.message);
-            } else {
-                const pedidosList = document.getElementById('pedidos-list');
-                pedidosList.innerHTML = '';
-                if (data.length === 0) {
-                    pedidosList.innerHTML = '<p>Nenhum pedido cadastrado ainda.</p>';
-                    return;
-                }
-                data.forEach(pedido => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <span>
-                            <strong>Pedido #${pedido.id.substring(0, 8)}</strong> - Cliente: ${pedido.clientes ? pedido.clientes.nome : 'N/A'} <br>
-                            Status: ${pedido.status_pagamento} - Valor: R$ ${pedido.total_final.toFixed(2)} <br>
-                            Data: ${new Date(pedido.data_solicitacao).toLocaleDateString()}
-                        </span>
-                        <div>
-                            <button data-id="${pedido.id}" class="edit-pedido-btn">Editar</button>
-                            <button data-id="${pedido.id}" class="delete-pedido-btn">Excluir</button>
-                        </div>
-                    `;
-                    pedidosList.appendChild(li);
-                });
-                addPedidoActionListeners();
-            }
-        }
-
-        document.getElementById('pedido-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!currentUserCompanyId && currentUserRole !== 'admin') return;
-
-            const clienteId = document.getElementById('pedido-cliente-select').value;
-            // CORREÇÃO: Usar os valores de desconto e total_original/final do novo fluxo de adição de serviços
-            // Estes campos não são mais diretamente do formulário, mas sim calculados
-            // a partir de 'servicosNoPedidoAtual' e 'desconto-pedido'
-            const totalOriginal = servicosNoPedidoAtual.reduce((acc, item) => acc + (item.valor * item.quantidade), 0);
-            const desconto = parseFloat(document.getElementById('desconto-pedido').value) || 0;
-            const totalFinal = Math.max(0, totalOriginal - desconto);
-
-
-            if (!clienteId) {
-                alert('Por favor, selecione um cliente.');
-                return;
-            }
-            if (servicosNoPedidoAtual.length === 0) {
-                alert('Por favor, adicione pelo menos um serviço ao pedido.');
-                return;
-            }
-
-
-            const currentPedidoId = e.target.dataset.editingId;
-
-            let dbOperation;
-            if (currentPedidoId) {
-                dbOperation = supabase
-                    .from('pedidos')
-                    .update({ 
-                        cliente_id: clienteId, 
-                        servicos: servicosNoPedidoAtual, // Atualiza os serviços
-                        desconto: desconto, // Atualiza o desconto
-                        total_original: totalOriginal, // Atualiza o total original
-                        total_final: totalFinal // Atualiza o total final
-                    }) 
-                    .eq('id', currentPedidoId)
-                    .eq('company_id', currentUserCompanyId);
-            } else {
-                dbOperation = supabase
-                    .from('pedidos')
-                    .insert([
-                        {
-                            cliente_id: clienteId,
-                            servicos: servicosNoPedidoAtual, // Inclui os serviços
-                            desconto: desconto, // Inclui o desconto
-                            total_original: totalOriginal, // Inclui o total original
-                            total_final: totalFinal, // Inclui o total final
-                            company_id: currentUserCompanyId,
-                            user_id: supabase.auth.currentUser.id // Adiciona o user_id
-                        }
-                    ]);
-            }
-
-            const { error } = await dbOperation;
-
-            if (error) {
-                console.error('Erro ao salvar pedido:', error.message);
-                alert('Erro ao salvar pedido: ' + error.message);
-            } else {
-                alert(currentPedidoId ? 'Pedido atualizado com sucesso!' : 'Pedido criado com sucesso!');
-                document.getElementById('pedido-form').reset();
-                servicosNoPedidoAtual = []; // Limpa os serviços selecionados após criar o pedido
-                document.getElementById('pedido-servicos-selecionados').innerHTML = ''; // Limpa a lista visual
-                updatePedidoTotal(); // Reseta o total
-                delete e.target.dataset.editingId;
-                e.target.querySelector('button[type="submit"]').textContent = 'Criar Pedido';
-                loadPedidos();
-            }
-        });
-
-        async function editPedido(id) {
-            const { data, error } = await supabase
-                .from('pedidos')
-                .select('*')
-                .eq('id', id)
-                .eq('company_id', currentUserCompanyId)
-                .single();
-
-            if (error) {
-                console.error('Erro ao buscar pedido para edição:', error.message);
-                alert('Erro ao carregar dados do pedido para edição.');
-            } else if (data) {
-                document.getElementById('pedido-cliente-select').value = data.cliente_id;
-                // Preenche os campos de serviços e desconto para edição
-                servicosNoPedidoAtual = data.servicos || [];
-                document.getElementById('desconto-pedido').value = data.desconto || 0;
-                renderServicosDoPedido();
-                updatePedidoTotal();
-
-                document.getElementById('pedido-form').dataset.editingId = data.id;
-                document.getElementById('pedido-form').querySelector('button[type="submit"]').textContent = 'Atualizar Pedido';
-            }
-        }
-
-        async function deletePedido(id) {
-            const { error } = await supabase
-                .from('pedidos')
-                .delete()
-                .eq('id', id)
-                .eq('company_id', currentUserCompanyId);
-
-            if (error) {
-                console.error('Erro ao excluir pedido:', error.message);
-                alert('Erro ao excluir pedido: ' + error.message);
-            } else {
-                alert('Pedido excluído com sucesso!');
-                loadPedidos();
-            }
-        }
-
-        function addPedidoActionListeners() {
-            document.querySelectorAll('#pedidos-list .delete-pedido-btn').forEach(button => {
-                button.onclick = () => {
-                    if (confirm('Tem certeza que deseja excluir este pedido?')) {
-                        deletePedido(button.dataset.id);
-                    }
-                };
-            });
-            document.querySelectorAll('#pedidos-list .edit-pedido-btn').forEach(button => {
-                button.onclick = () => editPedido(button.dataset.id);
-            });
-        }
-
-        // --- Funções CRUD para Gerenciamento de Empresas (APENAS ADMIN) ---
-        async function loadCompanies() {
-            console.log('[loadCompanies] Tentando carregar empresas...'); // Log adicionado
-            if (currentUserRole !== 'admin') {
-                console.log('[loadCompanies] Usuário não é admin, retornando.'); // Log adicionado
-                return; // Apenas admin pode ver
-            }
-            const { data, error } = await supabase
-                .from('companies')
-                .select('*');
-
-            if (error) {
-                console.error('[loadCompanies] Erro ao carregar empresas:', error.message); // Log adicionado
-                alert('Erro ao carregar empresas: ' + error.message);
-            } else {
-                console.log('[loadCompanies] Empresas carregadas com sucesso:', data); // Log adicionado
-                const companiesList = document.getElementById('companies-list');
-                companiesList.innerHTML = '';
-                if (data.length === 0) {
-                    companiesList.innerHTML = '<p>Nenhuma empresa cadastrada ainda.</p>';
-                    console.log('[loadCompanies] Nenhuma empresa encontrada.'); // Log adicionado
-                    return;
-                }
-                data.forEach(company => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <span>
-                            <strong>${company.name}</strong> (ID: ${company.id.substring(0, 8)}...)
-                        </span>
-                        <div>
-                            <button data-id="${company.id}" class="edit-company-btn">Editar</button>
-                            <button data-id="${company.id}" class="delete-company-btn">Excluir</button>
-                        </div>
-                    `;
-                    companiesList.appendChild(li);
-                });
-                addCompanyActionListeners();
-                loadCompaniesForUserSelect(); // Atualiza o select de empresas para criação de usuário
-            }
-        }
-
-        document.getElementById('company-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (currentUserRole !== 'admin') { alert('Permissão negada.'); return; }
-
-            const companyName = document.getElementById('company-name').value;
-            const currentCompanyId = e.target.dataset.editingId;
-
-            let dbOperation;
-            if (currentCompanyId) {
-                dbOperation = supabase
-                    .from('companies')
-                    .update({ name: companyName })
-                    .eq('id', currentCompanyId);
-            } else {
-                dbOperation = supabase.rpc('create_new_company', { company_name: companyName });
-            }
-
-            const { error } = await dbOperation;
-
-            if (error) {
-                console.error('Erro ao salvar empresa:', error.message);
-                alert('Erro ao salvar empresa: ' + error.message);
-            } else {
-                alert(currentCompanyId ? 'Empresa atualizada com sucesso!' : 'Empresa criada com sucesso!');
-                document.getElementById('company-form').reset();
-                delete e.target.dataset.editingId;
-                e.target.querySelector('button[type="submit"]').textContent = 'Criar Empresa';
-                loadCompanies();
-            }
-        });
-
-        async function editCompany(id) {
-            const { data, error } = await supabase
-                .from('companies')
-                .select('*')
-                .eq('id', id)
-                .single();
-
-            if (error) {
-                console.error('Erro ao buscar empresa para edição:', error.message);
-                alert('Erro ao carregar dados da empresa para edição.');
-            } else if (data) {
-                document.getElementById('company-name').value = data.name;
-                document.getElementById('company-form').dataset.editingId = data.id;
-                document.getElementById('company-form').querySelector('button[type="submit"]').textContent = 'Atualizar Empresa';
-            }
-        }
-
-        async function deleteCompany(id) {
-            if (!confirm('Tem certeza que deseja EXCLUIR esta empresa e TODOS os seus dados (perfis, clientes, serviços, pedidos)? Esta ação é irreversível!')) {
-                return;
-            }
-            const { error } = await supabase
-                .from('companies')
-                .delete()
-                .eq('id', id);
-
-            if (error) {
-                console.error('Erro ao excluir empresa:', error.message);
-                alert('Erro ao excluir empresa: ' + error.message);
-            } else {
-                alert('Empresa excluída com sucesso!');
-                loadCompanies();
-            }
-        }
-
-        function addCompanyActionListeners() {
-            document.querySelectorAll('#companies-list .delete-company-btn').forEach(button => {
-                button.onclick = () => deleteCompany(button.dataset.id);
-            });
-            document.querySelectorAll('#companies-list .edit-company-btn').forEach(button => {
-                button.onclick = () => editCompany(button.dataset.id);
-            });
-        }
-
-        // --- Funções CRUD para Gerenciamento de Usuários (APENAS ADMIN) ---
-        async function loadCompaniesForUserSelect() {
-            if (currentUserRole !== 'admin') return;
-            const { data, error } = await supabase
-                .from('companies')
-                .select('id, name');
-
-            if (error) {
-                console.error('Erro ao carregar empresas para o select de usuário:', error.message);
-            } else {
-                const selectElement = document.getElementById('new-user-company-select');
-                selectElement.innerHTML = '<option value="">Selecione a Empresa</option>';
-                data.forEach(company => {
-                    const option = document.createElement('option');
-                    option.value = company.id;
-                    option.textContent = company.name;
-                    selectElement.appendChild(option);
-                });
-            }
-        }
-
-        async function loadUsers() {
-            if (currentUserRole !== 'admin') return;
-            const { data, error } = await supabase
+            // Buscar o perfil do usuário para determinar a role e company_id
+            const { data: profile, error } = await supabaseClient
                 .from('profiles')
-                .select('*, companies(name)');
+                .select('role, company_id')
+                .eq('id', user.id)
+                .single();
 
             if (error) {
-                console.error('Erro ao carregar usuários:', error.message);
-                alert('Erro ao carregar usuários: ' + error.message);
+                console.error('Erro ao buscar perfil:', error);
+                currentUserRole = 'user'; // Padrão seguro em caso de erro
+                currentUserCompanyId = null; // Garante que não há company_id inválido
+                console.log('Usuário logado com role: user (padrão devido a erro de perfil)');
             } else {
-                const usersList = document.getElementById('users-list');
-                usersList.innerHTML = '';
-                if (data.length === 0) {
-                    usersList.innerHTML = '<p>Nenhum usuário cadastrado ainda.</p>';
-                    return;
-                }
-                data.forEach(profile => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <span>
-                            <strong>${profile.email}</strong> (${profile.full_name || 'N/A'}) <br>
-                            Role: ${profile.role} | Empresa: ${profile.companies ? profile.companies.name : 'N/A'}
-                        </span>
-                        <div>
-                            <button data-id="${profile.id}" data-email="${profile.email}" data-role="${profile.role}" data-company-id="${profile.company_id}" data-full-name="${profile.full_name || ''}" class="edit-user-btn">Editar</button>
-                            <button data-id="${profile.id}" class="delete-user-btn">Excluir</button>
-                        </div>
-                    `;
-                    usersList.appendChild(li);
-                });
-                addUserActionListeners();
+                currentUserRole = profile.role;
+                currentUserCompanyId = profile.company_id; 
+                console.log(`Usuário logado com role: ${currentUserRole}, Company ID: ${currentUserCompanyId}`);
             }
+
+            // Renderiza a aba ativa inicialmente (Serviços por padrão)
+            const activeTabButton = document.querySelector('.nav-btn.active');
+            if (activeTabButton) {
+                const tabId = activeTabButton.dataset.tab;
+                tabContents.forEach(content => content.classList.toggle('active', content.id === `${tabId}-tab`));
+                // Dispara o carregamento dos dados da aba ativa
+                if (tabId === 'relatorio') renderRelatorio();
+                else if (tabId === 'servicos') renderServicos();
+                else if (tabId === 'clientes') renderClientes();
+                else if (tabId === 'pedidos') renderPedidos();
+                else if (tabId === 'empresas') renderEmpresas();
+                else if (tabId === 'usuarios') renderUsuarios();
+            } else {
+                // Se nenhuma aba estiver ativa (o que não deve acontecer), renderiza serviços
+                renderServicos();
+            }
+
+            // Exibir/ocultar botões de administração com base na role
+            document.querySelectorAll('.admin-feature').forEach(btn => {
+                if (currentUserRole === 'admin') {
+                    btn.style.display = 'block';
+                } else {
+                    btn.style.display = 'none';
+                }
+            });
+
+        } else {
+            loginScreen.style.display = 'flex';
+            mainSystem.style.display = 'none';
+        }
+    }
+
+    // Chame initSystem ao carregar a página para verificar o status de login
+    initSystem();
+
+    // --- LÓGICA DE SERVIÇOS ---
+    const formServico = document.getElementById('form-servico');
+    const listaServicos = document.getElementById('lista-servicos');
+
+    async function renderServicos() {
+        showLoading(listaServicos);
+        // Filtra por company_id se não for admin
+        let query = supabaseClient.from('servicos').select('*').order('nome', { ascending: true });
+        if (currentUserRole !== 'admin' && currentUserCompanyId) {
+            query = query.eq('company_id', currentUserCompanyId);
         }
 
-        document.getElementById('user-creation-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (currentUserRole !== 'admin') { alert('Permissão negada.'); return; }
+        const { data, error } = await query;
+        if (error) {
+            showAlertError(error, 'Não foi possível carregar os serviços.');
+            listaServicos.innerHTML = '';
+            return;
+        }
+        servicosCache = data;
+        listaServicos.innerHTML = data.map(servico => `
+            <div class="item-card">
+                <div><strong>${servico.nome}</strong><br><span>${formatCurrency(servico.valor)}</span></div>
+                <button class="delete-btn" data-id="${servico.id}">Excluir</button>
+            </div>
+        `).join('');
+        updatePedidoFormOptions();
+    }
 
-            const email = document.getElementById('new-user-email').value;
-            const password = document.getElementById('new-user-password').value;
-            const fullName = document.getElementById('new-user-full-name').value;
-            const role = document.getElementById('new-user-role').value;
-            const companyId = document.getElementById('new-user-company-select').value;
+    formServico.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btn-add-servico');
+        btn.disabled = true;
+        btn.textContent = 'Adicionando...';
 
-            if (!companyId) {
-                alert('Por favor, selecione uma empresa para o novo usuário.');
-                return;
+        // Garante que o company_id seja incluído
+        const { error } = await supabaseClient.from('servicos').insert([{ 
+            nome: document.getElementById('nome-servico').value, 
+            valor: parseFloat(document.getElementById('valor-servico').value),
+            company_id: currentUserCompanyId // Adiciona o company_id
+        }]);
+        if (error) showAlertError(error, 'Erro ao adicionar serviço.');
+        else {
+            formServico.reset();
+            await renderServicos();
+        }
+        btn.disabled = false;
+        btn.textContent = 'Adicionar Serviço';
+    });
+
+    listaServicos.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('delete-btn') && confirm('Tem certeza que deseja excluir este serviço?')) {
+            const id = e.target.dataset.id;
+            const { error } = await supabaseClient.from('servicos').delete().eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
+            if (error) showAlertError(error, 'Erro ao excluir serviço. Verifique se ele não está em uso em algum pedido.');
+            else await renderServicos();
+        }
+    });
+
+    // --- LÓGICA DE CLIENTES ---
+    const formCliente = document.getElementById('form-cliente');
+    const listaClientes = document.getElementById('lista-clientes');
+
+    async function renderClientes() {
+        showLoading(listaClientes);
+        // Filtra por company_id se não for admin
+        let query = supabaseClient.from('clientes').select('*').order('nome', { ascending: true });
+        if (currentUserRole !== 'admin' && currentUserCompanyId) {
+            query = query.eq('company_id', currentUserCompanyId);
+        }
+
+        const { data, error } = await query;
+        if (error) {
+            showAlertError(error, 'Não foi possível carregar os clientes.');
+            listaClientes.innerHTML = '';
+            return;
+        }
+        clientesCache = data;
+        listaClientes.innerHTML = data.map(cliente => `
+            <div class="item-card">
+                <div><strong>${cliente.nome}</strong><br><small>${cliente.email || ''} | ${cliente.telefone || ''}</small></div>
+                <button class="delete-btn" data-id="${cliente.id}">Excluir</button>
+            </div>
+        `).join('');
+        updatePedidoFormOptions();
+    }
+
+    formCliente.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btn-add-cliente');
+        btn.disabled = true;
+        btn.textContent = 'Adicionando...';
+        // Garante que o company_id seja incluído
+        const { error } = await supabaseClient.from('clientes').insert([{ 
+            nome: document.getElementById('nome-cliente').value, 
+            email: document.getElementById('email-cliente').value, 
+            telefone: document.getElementById('telefone-cliente').value,
+            company_id: currentUserCompanyId // Adiciona o company_id
+        }]);
+        if (error) showAlertError(error, 'Erro ao adicionar cliente.');
+        else {
+            formCliente.reset();
+            await renderClientes();
+        }
+        btn.disabled = false;
+        btn.textContent = 'Adicionar Cliente';
+    });
+
+    listaClientes.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('delete-btn') && confirm('Tem certeza que deseja excluir este cliente?')) {
+            const id = e.target.dataset.id;
+            const { error } = await supabaseClient.from('clientes').delete().eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
+            if (error) showAlertError(error, 'Erro ao excluir cliente. Pedidos associados a ele não serão excluídos.');
+            else await renderClientes();
+        }
+    });
+
+    // --- LÓGICA DE PEDIDOS ---
+    const formPedido = document.getElementById('form-pedido');
+    const listaPedidos = document.getElementById('lista-pedidos');
+    const clientePedidoSelect = document.getElementById('cliente-pedido');
+    const servicoPedidoSelect = document.getElementById('servico-pedido');
+
+    function updatePedidoFormOptions() {
+        clientePedidoSelect.innerHTML = '<option value="">Selecione um cliente</option>' + clientesCache.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+        servicoPedidoSelect.innerHTML = '<option value="">Selecione um serviço</option>' + servicosCache.map(s => `<option value="${s.id}">${s.nome} - ${formatCurrency(s.valor)}</option>`).join('');
+    }
+
+    const updatePedidoTotal = () => {
+        const totalServicos = servicosNoPedidoAtual.reduce((acc, item) => acc + (item.valor * item.quantidade), 0);
+        const desconto = parseFloat(document.getElementById('desconto-pedido').value) || 0;
+        document.getElementById('total-pedido').textContent = formatCurrency(Math.max(0, totalServicos - desconto));
+    };
+    
+    document.getElementById('add-servico-pedido-btn').addEventListener('click', () => {
+        const servicoId = parseInt(servicoPedidoSelect.value);
+        const quantidade = parseInt(document.getElementById('quantidade-servico').value);
+        if (!servicoId || !quantidade) return alert('Selecione um serviço e a quantidade.');
+        const servico = servicosCache.find(s => s.id === servicoId);
+        
+        if (servico) {
+            servicosNoPedidoAtual.push({ ...servico, quantidade });
+            renderServicosDoPedido();
+            updatePedidoTotal();
+            servicoPedidoSelect.value = '';
+            document.getElementById('quantidade-servico').value = '1';
+        }
+    });
+
+    function renderServicosDoPedido() {
+        const listaServicosSelecionados = document.getElementById('pedido-servicos-selecionados');
+        listaServicosSelecionados.innerHTML = servicosNoPedidoAtual.map((item, index) => `
+            <li>
+                <span>${item.quantidade}x ${item.nome} (${formatCurrency(item.valor * item.quantidade)})</span>
+                <button type="button" class="delete-btn" data-index="${index}">x</button>
+            </li>
+        `).join('');
+    }
+
+    document.getElementById('pedido-servicos-selecionados').addEventListener('click', (e) => {
+        if (e.target.classList.contains('delete-btn')) {
+            servicosNoPedidoAtual.splice(parseInt(e.target.dataset.index), 1);
+            renderServicosDoPedido();
+            updatePedidoTotal();
+        }
+    });
+
+    document.getElementById('desconto-pedido').addEventListener('input', updatePedidoTotal);
+
+    formPedido.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const clienteId = parseInt(clientePedidoSelect.value);
+        if (!clienteId || servicosNoPedidoAtual.length === 0) return alert('Selecione um cliente e adicione pelo menos um serviço.');
+        
+        const btn = document.getElementById('btn-add-pedido');
+        btn.disabled = true;
+        btn.textContent = 'Criando...';
+
+        const totalOriginal = servicosNoPedidoAtual.reduce((acc, item) => acc + (item.valor * item.quantidade), 0);
+        const desconto = parseFloat(document.getElementById('desconto-pedido').value) || 0;
+        const totalFinal = Math.max(0, totalOriginal - desconto);
+
+        // Obtenha a sessão atual para pegar o user_id de forma correta
+        const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+
+        if (sessionError || !session) {
+            alert('Erro: Não foi possível obter sua sessão de usuário. Por favor, faça login novamente.');
+            console.error('Erro ao obter sessão para criar pedido:', sessionError);
+            btn.disabled = false;
+            btn.textContent = 'Criar Pedido';
+            return;
+        }
+
+        const { error } = await supabaseClient.from('pedidos').insert([{
+            cliente_id: clienteId,
+            servicos: servicosNoPedidoAtual,
+            desconto,
+            total_original: totalOriginal,
+            total_final: totalFinal,
+            user_id: session.user.id, 
+            company_id: currentUserCompanyId // Adiciona o company_id
+        }]);
+
+        if (error) {
+            showAlertError(error, 'Erro ao criar pedido. Verifique o console para mais detalhes.');
+        } else {
+            formPedido.reset();
+            servicosNoPedidoAtual = [];
+            document.getElementById('pedido-servicos-selecionados').innerHTML = '';
+            updatePedidoTotal();
+            await renderPedidos();
+        }
+        btn.disabled = false;
+        btn.textContent = 'Criar Pedido';
+    });
+
+    async function renderPedidos() {
+        showLoading(listaPedidos);
+        // Filtra por company_id se não for admin
+        let query = supabaseClient
+            .from('pedidos')
+            .select('*, clientes(nome, email, telefone)') 
+            .order('data_solicitacao', { ascending: false }); 
+            
+        if (currentUserRole !== 'admin' && currentUserCompanyId) {
+            query = query.eq('company_id', currentUserCompanyId);
+        }
+
+        const { data, error } = await query;
+            
+        if (error) {
+            showAlertError(error, 'Não foi possível carregar os pedidos.');
+            listaPedidos.innerHTML = '';
+            return;
+        }
+
+        const pedidosAgrupadosPorCliente = {};
+
+        data.forEach(pedido => {
+            const clienteNome = pedido.clientes ? pedido.clientes.nome : 'Cliente Removido';
+            const clienteId = pedido.cliente_id;
+
+            const clienteKey = `cliente_${clienteId || 'null'}_${clienteNome.replace(/\s/g, '_')}`;
+
+            if (!pedidosAgrupadosPorCliente[clienteKey]) {
+                pedidosAgrupadosPorCliente[clienteKey] = {
+                    nome: clienteNome,
+                    id: clienteId,
+                    pedidosPendentes: [],
+                    outrosPedidos: []
+                };
             }
 
-            const currentUserId = e.target.dataset.editingId;
-
-            let authOperation;
-            if (currentUserId) {
-                const updateData = { email: email };
-                if (password) {
-                    updateData.password = password;
-                }
-                authOperation = supabase.auth.admin.updateUserById(currentUserId, updateData);
+            if (pedido.status_pagamento === 'Pendente') {
+                pedidosAgrupadosPorCliente[clienteKey].pedidosPendentes.push(pedido);
             } else {
-                authOperation = supabase.auth.admin.createUser({
-                    email: email,
-                    password: password,
-                    email_confirm: true
-                });
+                pedidosAgrupadosPorCliente[clienteKey].outrosPedidos.push(pedido);
+            }
+        });
+
+        let htmlPedidos = '';
+
+        const clientesKeysOrdenadas = Object.keys(pedidosAgrupadosPorCliente).sort((a, b) => {
+            const nomeA = pedidosAgrupadosPorCliente[a].nome.toLowerCase();
+            const nomeB = pedidosAgrupadosPorCliente[b].nome.toLowerCase();
+            if (nomeA < nomeB) return -1;
+            if (nomeA > nomeB) return 1;
+            return 0;
+        });
+
+        clientesKeysOrdenadas.forEach(key => {
+            const clienteInfo = pedidosAgrupadosPorCliente[key];
+
+            if (clienteInfo.pedidosPendentes.length > 0) {
+                htmlPedidos += `
+                    <div class="cliente-grupo-pedidos">
+                        <h3 style="margin-top: 0; color: var(--primary-color);">Pedidos Pendentes de ${clienteInfo.nome}</h3>
+                        <div class="item-list">
+                            ${clienteInfo.pedidosPendentes.map(pedido => renderPedidoCard(pedido)).join('')}
+                        </div>
+                    </div>
+                `;
             }
 
-            const { data: authData, error: authError } = await authOperation;
+            if (clienteInfo.outrosPedidos.length > 0) {
+                if (clienteInfo.pedidosPendentes.length > 0) {
+                    htmlPedidos += `<hr style="border: 0; border-top: 1px dashed #eee; margin: 20px 0;">`;
+                }
+                htmlPedidos += `
+                    <div class="cliente-grupo-pedidos">
+                        <h3 style="margin-top: 0; color: #666;">Outros Pedidos de ${clienteInfo.nome}</h3>
+                        <div class="item-list">
+                            ${clienteInfo.outrosPedidos.map(pedido => renderPedidoCard(pedido)).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+        });
+
+        listaPedidos.innerHTML = htmlPedidos;
+    }
+
+    function renderPedidoCard(pedido) {
+        const clienteNome = pedido.clientes ? pedido.clientes.nome : 'Cliente Removido';
+        let valorHtml = `<h3 class="preco-final">${formatCurrency(pedido.total_final)}</h3>`;
+        if (pedido.desconto > 0) {
+            valorHtml = `<span class="preco-original">${formatCurrency(pedido.total_original)}</span> <span class="desconto-valor">(- ${formatCurrency(pedido.desconto)})</span> ${valorHtml}`;
+        }
+        return `
+            <div class="pedido-card">
+                <div class="pedido-header">
+                    <h3>Pedido #${pedido.id}</h3>
+                    <span>${formatDate(pedido.data_solicitacao)}</span>
+                </div>
+                <p><strong>Cliente:</strong> ${clienteNome}</p>
+                <ul class="pedido-servicos-list">
+                    ${pedido.servicos.map(s => `<li>${s.quantidade}x ${s.nome} <span>${formatCurrency(s.valor * s.quantidade)}</span></li>`).join('')}
+                </ul>
+                <div class="pedido-valores">${valorHtml}</div>
+                <div class="pedido-status">
+                    <div class="status-group">
+                        <label>Pagamento:</label>
+                        <select class="status-select" data-id="${pedido.id}" data-type="pagamento">
+                            <option value="Pendente" ${pedido.status_pagamento === 'Pendente' ? 'selected' : ''}>Pendente</option>
+                            <option value="Pago" ${pedido.status_pagamento === 'Pago' ? 'selected' : ''}>Pago</option>
+                        </select>
+                    </div>
+                    <div class="status-group">
+                        <label>Entrega:</label>
+                        <select class="status-select" data-id="${pedido.id}" data-type="entrega">
+                            <option value="Pendente" ${pedido.status_entrega === 'Pendente' ? 'selected' : ''}>Pendente</option>
+                            <option value="Entregue" ${pedido.status_entrega === 'Entregue' ? 'selected' : ''}>Entregue</option>
+                        </select>
+                    </div>
+                    <div class="status-group">
+                        <label>Data Entrega:</label>
+                        <input type="date" class="data-entrega-input" data-id="${pedido.id}" value="${pedido.data_entrega ? pedido.data_entrega.split('T')[0] : ''}">
+                    </div>
+                </div>
+                <div class="pedido-actions">
+                    <button class="view-comprovante-btn" data-id="${pedido.id}">Ver Comprovante</button>
+                    <button class="delete-btn" data-id="${pedido.id}">Excluir Pedido</button>
+                </div>
+            </div>
+        `;
+    }
+
+    listaPedidos.addEventListener('change', async (e) => {
+        if (e.target.classList.contains('status-select')) {
+            const id = e.target.dataset.id;
+            const type = e.target.dataset.type;
+            const value = e.target.value;
+            let updateData = {};
+            if (type === 'pagamento') updateData = { status_pagamento: value };
+            else if (type === 'entrega') updateData = { status_entrega: value };
+
+            const { error } = await supabaseClient.from('pedidos').update(updateData).eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
+            if (error) showAlertError(error, `Erro ao atualizar status de ${type}.`);
+            else renderPedidos(); // Recarrega para mostrar o status atualizado
+        } else if (e.target.classList.contains('data-entrega-input')) {
+            const id = e.target.dataset.id;
+            const value = e.target.value; // Formato YYYY-MM-DD
+            // Para garantir que o Supabase interprete como UTC para compatibilidade
+            const dateUTC = value ? new Date(value + 'T00:00:00Z').toISOString() : null;
+
+            const { error } = await supabaseClient.from('pedidos').update({ data_entrega: dateUTC }).eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
+            if (error) showAlertError(error, 'Erro ao atualizar data de entrega.');
+            else renderPedidos();
+        }
+    });
+
+    listaPedidos.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('delete-btn') && confirm('Tem certeza que deseja excluir este pedido?')) {
+            const id = e.target.dataset.id;
+            const { error } = await supabaseClient.from('pedidos').delete().eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
+            if (error) showAlertError(error, 'Erro ao excluir pedido.');
+            else await renderPedidos();
+        }
+        if (e.target.classList.contains('view-comprovante-btn')) {
+            const pedidoId = e.target.dataset.id;
+            await renderComprovanteModal(pedidoId);
+        }
+    });
+
+    // --- LÓGICA DO RELATÓRIO ---
+    const corpoTabelaRelatorio = document.getElementById('corpo-tabela-relatorio');
+    const listaResumoPendencias = document.getElementById('lista-resumo-pendencias');
+
+    async function renderRelatorio() {
+        showLoading(corpoTabelaRelatorio);
+        showLoading(listaResumoPendencias);
+
+        const trintaDiasAtras = new Date();
+        trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+        const dataMinima = trintaDiasAtras.toISOString();
+
+        // Filtra por company_id se não for admin
+        let query = supabaseClient
+            .from('pedidos')
+            .select('*, clientes(nome)')
+            .gte('data_solicitacao', dataMinima)
+            .order('data_solicitacao', { ascending: false });
+
+        if (currentUserRole !== 'admin' && currentUserCompanyId) {
+            query = query.eq('company_id', currentUserCompanyId);
+        }
+
+        const { data: pedidos, error } = await query;
+
+        if (error) {
+            showAlertError(error, 'Não foi possível carregar o relatório.');
+            corpoTabelaRelatorio.innerHTML = '<tr><td colspan="7">Erro ao carregar o relatório.</td></tr>';
+            listaResumoPendencias.innerHTML = '';
+            return;
+        }
+
+        if (pedidos.length === 0) {
+            corpoTabelaRelatorio.innerHTML = '<tr><td colspan="7">Nenhum pedido encontrado nos últimos 30 dias.</td></tr>';
+        } else {
+            corpoTabelaRelatorio.innerHTML = pedidos.map(pedido => `
+                <tr>
+                    <td>#${pedido.id}</td>
+                    <td>${pedido.clientes ? pedido.clientes.nome : 'Cliente Removido'}</td>
+                    <td>${formatDate(pedido.data_solicitacao)}</td>
+                    <td>${formatDate(pedido.data_entrega)}</td>
+                    <td>${formatCurrency(pedido.total_final)}</td>
+                    <td>${pedido.status_pagamento}</td>
+                    <td>${pedido.status_entrega}</td>
+                </tr>
+            `).join('');
+        }
+
+        // --- Resumo de Pendências ---
+        const resumoPendencias = {};
+
+        pedidos.forEach(pedido => {
+            if (pedido.status_pagamento === 'Pendente') {
+                const clienteNome = pedido.clientes ? pedido.clientes.nome : 'Cliente Removido';
+                if (!resumoPendencias[clienteNome]) {
+                    resumoPendencias[clienteNome] = { nome: clienteNome, totalPendente: 0, pedidos: [] };
+                }
+                resumoPendencias[clienteNome].totalPendente += pedido.total_final;
+                resumoPendencias[clienteNome].pedidos.push(pedido);
+            }
+        });
+
+        const clientesComPendencia = Object.values(resumoPendencias).sort((a, b) => {
+            const nomeA = a.nome.toLowerCase(); 
+            const nomeB = b.nome.toLowerCase();
+            if (nomeA < nomeB) return -1;
+            if (nomeA > nomeB) return 1;
+            return 0;
+        });
+
+        if (clientesComPendencia.length === 0) {
+            listaResumoPendencias.innerHTML = '<p>Nenhum valor pendente.</p>';
+        } else {
+            listaResumoPendencias.innerHTML = clientesComPendencia.map(cliente => `
+                <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-radius: 5px; background-color: #f9f9f9;">
+                    <strong>${cliente.nome}:</strong> ${formatCurrency(cliente.totalPendente)} em ${cliente.pedidos.length} pedido(s) pendente(s).
+                    <ul style="list-style: disc; padding-left: 20px; margin-top: 5px;">
+                        ${cliente.pedidos.map(p => `<li>Pedido #${p.id} (${formatDate(p.data_solicitacao)}): ${formatCurrency(p.total_final)}</li>`).join('')}
+                    </ul>
+                </div>
+            `).join('');
+        }
+    }
+
+    document.getElementById('exportar-relatorio-pdf').addEventListener('click', async () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'pt', 'a4');
+        const element = document.getElementById('relatorio-tab'); // Captura a aba inteira do relatório
+
+        // Adiciona um título ao PDF
+        doc.setFontSize(18);
+        doc.text("Relatório de Pedidos", 40, 40);
+
+        // Renderiza o HTML para canvas e depois para PDF
+        html2canvas(element, { 
+            scale: 2, // Aumenta a escala para melhor qualidade
+            useCORS: true, // Importante se tiver imagens ou recursos de outras origens
+            allowTaint: true 
+        }).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+            const imgWidth = 595; // Largura A4 em pt
+            const pageHeight = 842; // Altura A4 em pt
+            const imgHeight = canvas.height * imgWidth / canvas.width;
+            let heightLeft = imgHeight;
+            let position = 60; // Posição inicial abaixo do título
+
+            doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                doc.addPage();
+                doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+            doc.save('relatorio_pedidos.pdf');
+        }).catch(error => {
+            console.error('Erro ao gerar PDF:', error);
+            alert('Ocorreu um erro ao gerar o PDF do relatório. Verifique o console.');
+        });
+    });
+
+    // --- Lógica do Comprovante Modal ---
+    const comprovanteModal = document.getElementById('comprovante-modal');
+    const comprovanteContainer = document.getElementById('comprovante-container');
+    const fecharModalBtn = document.getElementById('fechar-modal');
+    const exportComprovantePngBtn = document.getElementById('export-comprovante-png');
+    const exportComprovantePdfBtn = document.getElementById('export-comprovante-pdf');
+    let currentPedidoParaComprovante = null; // Para guardar os dados do pedido atual do comprovante
+
+    async function renderComprovanteModal(pedidoId) {
+        const { data: pedido, error } = await supabaseClient
+            .from('pedidos')
+            .select('*, clientes(nome, email, telefone)')
+            .eq('id', pedidoId)
+            .single();
+
+        if (error || !pedido) {
+            showAlertError(error, 'Não foi possível carregar os detalhes do pedido para o comprovante.');
+            return;
+        }
+
+        currentPedidoParaComprovante = pedido; // Salva o pedido para exportação
+
+        const cliente = pedido.clientes;
+        const dataSolicitacao = formatDate(pedido.data_solicitacao);
+        const dataEntrega = formatDate(pedido.data_entrega);
+
+        let servicosHtml = pedido.servicos.map(s => `
+            <li>
+                <span>${s.quantidade}x ${s.nome}</span>
+                <span>${formatCurrency(s.valor)} cada</span>
+                <span>${formatCurrency(s.valor * s.quantidade)}</span>
+            </li>
+        `).join('');
+
+        comprovanteContainer.innerHTML = `
+            <h3>Detalhes do Pedido #${pedido.id}</h3>
+            <p><strong>Cliente:</strong> ${cliente ? cliente.nome : 'N/A'}</p>
+            <p><strong>Email:</strong> ${cliente ? cliente.email || 'N/A' : 'N/A'}</p>
+            <p><strong>Telefone:</strong> ${cliente ? cliente.telefone || 'N/A' : 'N/A'}</p>
+            <p><strong>Data da Solicitação:</strong> ${dataSolicitacao}</p>
+            <p><strong>Data da Entrega:</strong> ${dataEntrega}</p>
+            <hr>
+            <h4>Serviços:</h4>
+            <ul class="pedido-servicos-list">
+                ${servicosHtml}
+            </ul>
+            <hr>
+            <p><strong>Total Original:</strong> ${formatCurrency(pedido.total_original)}</p>
+            <p><strong>Desconto:</strong> ${formatCurrency(pedido.desconto)}</p>
+            <h3><strong>Total Final:</strong> ${formatCurrency(pedido.total_final)}</h3>
+            <p><strong>Status Pagamento:</strong> ${pedido.status_pagamento}</p>
+            <p><strong>Status Entrega:</strong> ${pedido.status_entrega}</p>
+        `;
+        comprovanteModal.style.display = 'flex';
+    }
+
+    fecharModalBtn.addEventListener('click', () => {
+        comprovanteModal.style.display = 'none';
+        currentPedidoParaComprovante = null;
+    });
+
+    exportComprovantePngBtn.addEventListener('click', () => {
+        if (!currentPedidoParaComprovante) return;
+        html2canvas(comprovanteContainer, { scale: 2, useCORS: true, allowTaint: true }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `comprovante_pedido_${currentPedidoParaComprovante.id}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }).catch(error => {
+            console.error('Erro ao exportar PNG:', error);
+            alert('Ocorreu um erro ao exportar o comprovante como PNG.');
+        });
+    });
+
+    exportComprovantePdfBtn.addEventListener('click', () => {
+        if (!currentPedidoParaComprovante) return;
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'pt', 'a4');
+        
+        html2canvas(comprovanteContainer, { scale: 2, useCORS: true, allowTaint: true }).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+            const imgWidth = 595; // A4 width in pts
+            const imgHeight = canvas.height * imgWidth / canvas.width;
+            
+            doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+            doc.save(`comprovante_pedido_${currentPedidoParaComprovante.id}.pdf`);
+        }).catch(error => {
+            console.error('Erro ao exportar PDF:', error);
+            alert('Ocorreu um erro ao exportar o comprovante como PDF.');
+        });
+    });
+
+    // --- LÓGICA DE EMPRESAS (ADMIN APENAS) ---
+    const formEmpresa = document.getElementById('form-empresa');
+    const listaEmpresas = document.getElementById('lista-empresas');
+    const empresaUsuarioSelect = document.getElementById('empresa-usuario'); // Select de empresa na criação de usuário
+
+    async function renderEmpresas() {
+        if (currentUserRole !== 'admin') {
+            listaEmpresas.innerHTML = '<p>Você não tem permissão para visualizar empresas.</p>';
+            return;
+        }
+        showLoading(listaEmpresas);
+        const { data, error } = await supabaseClient.from('companies').select('*').order('name', { ascending: true });
+        if (error) {
+            showAlertError(error, 'Não foi possível carregar as empresas.');
+            listaEmpresas.innerHTML = '';
+            return;
+        }
+        empresasCache = data; // Atualiza o cache de empresas
+        listaEmpresas.innerHTML = data.map(empresa => `
+            <div class="item-card">
+                <div><strong>${empresa.name}</strong><br><small>ID: ${empresa.id}</small></div>
+                <button class="delete-btn" data-id="${empresa.id}">Excluir</button>
+            </div>
+        `).join('');
+        updateEmpresaSelectOptions(); // Atualiza o select de empresas para usuários
+    }
+
+    formEmpresa.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (currentUserRole !== 'admin') { alert('Permissão negada.'); return; }
+
+        const btn = document.getElementById('btn-add-empresa');
+        btn.disabled = true;
+        btn.textContent = 'Adicionando...';
+
+        const nomeEmpresa = document.getElementById('nome-empresa').value;
+        
+        // Chamada RPC para criar a empresa e associar o admin
+        const { data, error } = await supabaseClient.rpc('create_new_company', { company_name: nomeEmpresa });
+
+        if (error) {
+            showAlertError(error, 'Erro ao adicionar empresa.');
+        } else {
+            formEmpresa.reset();
+            alert(`Empresa "${nomeEmpresa}" criada com sucesso! ID: ${data.company_id}`);
+            await renderEmpresas();
+        }
+        btn.disabled = false;
+        btn.textContent = 'Adicionar Empresa';
+    });
+
+    listaEmpresas.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('delete-btn') && currentUserRole === 'admin') {
+            if (confirm('Tem certeza que deseja excluir esta empresa? Isso removerá TODOS os dados associados a ela (usuários, clientes, serviços, pedidos)! Esta ação é irreversível!')) {
+                const id = e.target.dataset.id;
+                const { error } = await supabaseClient.from('companies').delete().eq('id', id);
+                if (error) showAlertError(error, 'Erro ao excluir empresa.');
+                else await renderEmpresas();
+            }
+        }
+    });
+
+    function updateEmpresaSelectOptions() {
+        empresaUsuarioSelect.innerHTML = '<option value="">Selecione uma empresa</option>' + empresasCache.map(empresa => `<option value="${empresa.id}">${empresa.name}</option>`).join('');
+    }
+
+
+    // --- LÓGICA DE USUÁRIOS (ADMIN APENAS) ---
+    const formUsuario = document.getElementById('form-usuario');
+    const listaUsuarios = document.getElementById('lista-usuarios');
+
+    async function renderUsuarios() {
+        if (currentUserRole !== 'admin') {
+            listaUsuarios.innerHTML = '<p>Você não tem permissão para visualizar usuários.</p>';
+            return;
+        }
+        showLoading(listaUsuarios);
+        const { data, error } = await supabaseClient.from('profiles').select('*, companies(name)').order('email', { ascending: true });
+        if (error) {
+            showAlertError(error, 'Não foi possível carregar os usuários.');
+            listaUsuarios.innerHTML = '';
+            return;
+        }
+        listaUsuarios.innerHTML = data.map(usuario => `
+            <div class="item-card">
+                <div>
+                    <strong>${usuario.email}</strong><br>
+                    <small>Nome: ${usuario.full_name || 'N/A'}</small><br>
+                    <small>Permissão: ${usuario.role}</small><br>
+                    <small>Empresa: ${usuario.companies ? usuario.companies.name : 'N/A'}</small>
+                </div>
+                <button class="delete-btn" data-id="${usuario.id}">Excluir</button>
+            </div>
+        `).join('');
+        // Recarrega as empresas para o select de usuário
+        await renderEmpresas(); 
+    }
+
+    formUsuario.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (currentUserRole !== 'admin') { alert('Permissão negada.'); return; }
+
+        const btn = document.getElementById('btn-add-usuario');
+        btn.disabled = true;
+        btn.textContent = 'Processando...';
+
+        const email = document.getElementById('email-usuario').value;
+        const password = document.getElementById('senha-usuario').value;
+        const fullName = document.getElementById('nome-completo-usuario').value;
+        const role = document.getElementById('role-usuario').value;
+        const companyId = document.getElementById('empresa-usuario').value;
+
+        if (!companyId) {
+            alert('Por favor, selecione uma empresa para o novo usuário.');
+            btn.disabled = false;
+            btn.textContent = 'Adicionar Usuário';
+            return;
+        }
+
+        try {
+            // Primeiro, cria o usuário na autenticação do Supabase
+            const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
+                email: email,
+                password: password,
+                email_confirm: true // Opcional: envia email de confirmação
+            });
 
             if (authError) {
-                console.error('Erro na operação de autenticação (criar/atualizar usuário):', authError.message);
-                alert('Erro ao criar/atualizar usuário: ' + authError.message);
+                showAlertError(authError, 'Erro ao criar usuário na autenticação.');
+                btn.disabled = false;
+                btn.textContent = 'Adicionar Usuário';
                 return;
             }
 
-            const userId = currentUserId || authData.user.id;
+            const userId = authData.user.id;
 
-            const { error: rpcError } = await supabase.rpc('create_profile_for_user', {
+            // Em seguida, cria o perfil na tabela 'profiles' usando a função RPC
+            const { error: rpcError } = await supabaseClient.rpc('create_profile_for_user', {
                 user_id: userId,
                 user_email: email,
                 user_role: role,
@@ -1309,174 +1159,37 @@
             });
 
             if (rpcError) {
-                console.error('Erro ao criar/atualizar perfil via RPC:', rpcError.message);
-                alert('Erro ao criar/atualizar perfil do usuário: ' + rpcError.message);
-                if (!currentUserId) {
-                     await supabase.auth.admin.deleteUser(userId);
-                     console.log('Usuário auth.users revertido devido a falha no perfil.');
-                }
+                showAlertError(rpcError, 'Erro ao criar perfil do usuário. O usuário na autenticação será removido.');
+                // Se o perfil falhar, tente reverter a criação do usuário na autenticação
+                await supabaseClient.auth.admin.deleteUser(userId);
+                console.error('Usuário de autenticação revertido devido a falha na criação do perfil.');
             } else {
-                alert(currentUserId ? 'Usuário e perfil atualizados com sucesso!' : 'Usuário e perfil criados com sucesso!');
-                document.getElementById('user-creation-form').reset();
-                delete e.target.dataset.editingId;
-                e.target.querySelector('button[type="submit"]').textContent = 'Criar Usuário';
-                loadUsers();
+                alert('Usuário e perfil criados com sucesso!');
+                formUsuario.reset();
+                await renderUsuarios();
             }
-        });
-
-        async function editUser(id, email, role, companyId, fullName) {
-            document.getElementById('new-user-email').value = email;
-            document.getElementById('new-user-full-name').value = fullName;
-            document.getElementById('new-user-role').value = role;
-            document.getElementById('new-user-company-select').value = companyId;
-            document.getElementById('user-creation-form').dataset.editingId = id;
-            document.getElementById('user-creation-form').querySelector('button[type="submit"]').textContent = 'Atualizar Usuário';
+        } catch (err) {
+            showAlertError(err, 'Ocorreu um erro inesperado ao criar o usuário.');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Adicionar Usuário';
         }
+    });
 
-        async function deleteUser(id) {
-            if (!confirm('Tem certeza que deseja EXCLUIR este usuário? Isso removerá o acesso e o perfil dele. Esta ação é irreversível!')) {
-                return;
-            }
-            const { error } = await supabase.auth.admin.deleteUser(id);
-
-            if (error) {
-                console.error('Erro ao excluir usuário:', error.message);
-                alert('Erro ao excluir usuário: ' + error.message);
-            } else {
-                alert('Usuário excluído com sucesso!');
-                loadUsers();
+    listaUsuarios.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('delete-btn') && currentUserRole === 'admin') {
+            if (confirm('Tem certeza que deseja excluir este usuário? Isso removerá o acesso e o perfil dele. Esta ação é irreversível!')) {
+                const id = e.target.dataset.id;
+                const { error } = await supabaseClient.auth.admin.deleteUser(id); // Exclui da autenticação, o trigger deve cuidar do perfil
+                if (error) showAlertError(error, 'Erro ao excluir usuário.');
+                else await renderUsuarios();
             }
         }
-
-        function addUserActionListeners() {
-            document.querySelectorAll('#users-list .delete-user-btn').forEach(button => {
-                button.onclick = () => deleteUser(button.dataset.id);
-            });
-            document.querySelectorAll('#users-list .edit-user-btn').forEach(button => {
-                button.onclick = () => editUser(
-                    button.dataset.id,
-                    button.dataset.email,
-                    button.dataset.role,
-                    button.dataset.companyId,
-                    button.dataset.fullName
-                );
-            });
-        }
+    });
 
 
-        // --- Inicialização ---
-        logoutButton.addEventListener('click', handleLogout);
+}); // Fim do DOMContentLoaded
+</script>
 
-        // Listener para o evento de autenticação do Supabase
-        supabase.auth.onAuthStateChange((event, session) => {
-            console.log('Auth event:', event, 'Session:', session);
-            if (event === 'SIGNED_IN' && session) {
-                // Se já estiver logado, mostra o dashboard
-                checkAuthAndDisplayContent();
-            } else if (event === 'SIGNED_OUT') {
-                // Se deslogou, mostra a tela de login
-                checkAuthAndDisplayContent();
-            } else {
-                // Para o carregamento inicial da página
-                checkAuthAndDisplayContent();
-            }
-        });
-
-        // --- Variáveis e Funções para o novo fluxo de Pedidos (Serviços e Desconto) ---
-        let servicosNoPedidoAtual = []; // Array para armazenar os serviços adicionados ao pedido
-        let servicosCache = []; // Cache de todos os serviços disponíveis
-
-        // Função para carregar serviços e clientes para os selects do formulário de pedido
-        async function loadServicosAndClientesForPedidoForm() {
-            // Carrega serviços
-            const { data: servicosData, error: servicosError } = await supabase
-                .from('servicos')
-                .select('id, nome, valor') // Seleciona apenas as colunas necessárias
-                .eq('company_id', currentUserCompanyId); // Filtra por empresa
-
-            if (servicosError) {
-                console.error('Erro ao carregar serviços para o formulário de pedido:', servicosError.message);
-            } else {
-                servicosCache = servicosData;
-                const servicoPedidoSelect = document.getElementById('servico-pedido');
-                servicoPedidoSelect.innerHTML = '<option value="">Selecione um serviço</option>';
-                servicosData.forEach(servico => {
-                    const option = document.createElement('option');
-                    option.value = servico.id;
-                    option.textContent = `${servico.nome} - R$ ${servico.valor.toFixed(2)}`;
-                    servicoPedidoSelect.appendChild(option);
-                });
-            }
-
-            // Carrega clientes (reutiliza loadClientesForPedidoSelect)
-            await loadClientesForPedidoSelect();
-        }
-
-        // Função para renderizar os serviços selecionados no pedido
-        function renderServicosDoPedido() {
-            const listaServicosSelecionados = document.getElementById('pedido-servicos-selecionados');
-            listaServicosSelecionados.innerHTML = servicosNoPedidoAtual.map((item, index) => `
-                <li>
-                    <span>${item.quantidade}x ${item.nome} (${(item.valor * item.quantidade).toFixed(2)})</span>
-                    <button type="button" class="delete-btn" data-index="${index}">x</button>
-                </li>
-            `).join('');
-        }
-
-        // Função para atualizar o total do pedido
-        const updatePedidoTotal = () => {
-            const totalServicos = servicosNoPedidoAtual.reduce((acc, item) => acc + (item.valor * item.quantidade), 0);
-            const desconto = parseFloat(document.getElementById('desconto-pedido').value) || 0;
-            document.getElementById('total-pedido').textContent = `R$ ${Math.max(0, totalServicos - desconto).toFixed(2)}`;
-        };
-
-        // Listener para adicionar serviço ao pedido
-        document.getElementById('add-servico-pedido-btn').addEventListener('click', () => {
-            const servicoId = document.getElementById('servico-pedido').value;
-            const quantidade = parseInt(document.getElementById('quantidade-servico').value);
-
-            if (!servicoId || isNaN(quantidade) || quantidade <= 0) {
-                alert('Selecione um serviço e insira uma quantidade válida.');
-                return;
-            }
-
-            const servico = servicosCache.find(s => s.id === servicoId);
-
-            if (servico) {
-                const existingServiceIndex = servicosNoPedidoAtual.findIndex(item => item.id === servicoId);
-                if (existingServiceIndex > -1) {
-                    servicosNoPedidoAtual[existingServiceIndex].quantidade += quantidade;
-                } else {
-                    servicosNoPedidoAtual.push({ ...servico, quantidade });
-                }
-                
-                renderServicosDoPedido();
-                updatePedidoTotal();
-                document.getElementById('servico-pedido').value = '';
-                document.getElementById('quantidade-servico').value = '1';
-            } else {
-                alert('Serviço não encontrado. Tente recarregar a página.');
-            }
-        });
-
-        // Listener para remover serviço do pedido
-        document.getElementById('pedido-servicos-selecionados').addEventListener('click', (e) => {
-            if (e.target.classList.contains('delete-btn')) {
-                servicosNoPedidoAtual.splice(parseInt(e.target.dataset.index), 1);
-                renderServicosDoPedido();
-                updatePedidoTotal();
-            }
-        });
-
-        // Listener para o campo de desconto
-        document.getElementById('desconto-pedido').addEventListener('input', updatePedidoTotal);
-
-        // NOVO: Adiciona a chamada para carregar serviços e clientes no form de pedido quando a aba é ativada
-        document.getElementById('show-pedidos').addEventListener('click', () => {
-            showSection(pedidosSection);
-            loadServicosAndClientesForPedidoForm();
-            loadPedidos(); // Carrega os pedidos existentes
-        });
-    </script>
 </body>
 </html>
