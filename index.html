@@ -1130,7 +1130,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         empresasCache = data; // Atualiza o cache de empresas
-        console.log('[renderEmpresas] Empresas carregadas:', data); // Log de dados carregados
+        console.log('[renderEmpresas] Empresas carregadas e cache atualizado:', empresasCache); // Log de dados carregados
         
         let empresasHtml = '';
         if (data.length === 0) {
@@ -1147,6 +1147,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (listaEmpresas) {
             listaEmpresas.innerHTML = empresasHtml;
             console.log('[renderEmpresas] listaEmpresas.innerHTML atualizado.'); // Log de atualização do DOM
+            console.log('[renderEmpresas] listaEmpresas offsetWidth:', listaEmpresas.offsetWidth, 'offsetHeight:', listaEmpresas.offsetHeight); // Log de dimensões
         } else {
             console.warn('[renderEmpresas] Elemento listaEmpresas não encontrado no DOM.'); // Aviso se o elemento não for encontrado
         }
@@ -1189,9 +1190,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function updateEmpresaSelectOptions() {
+        console.log('[updateEmpresaSelectOptions] Função chamada.'); // Log de entrada
+        console.log('[updateEmpresaSelectOptions] Conteúdo de empresasCache:', empresasCache); // Log do cache
         // CORREÇÃO: Verifica se o `empresaUsuarioSelect` existe antes de manipular seu `innerHTML`
         if (empresaUsuarioSelect) {
-            empresaUsuarioSelect.innerHTML = '<option value="">Selecione uma empresa</option>' + empresasCache.map(empresa => `<option value="${empresa.id}">${empresa.name}</option>`).join('');
+            const optionsHtml = '<option value="">Selecione uma empresa</option>' + empresasCache.map(empresa => `<option value="${empresa.id}">${empresa.name}</option>`).join('');
+            empresaUsuarioSelect.innerHTML = optionsHtml;
+            console.log('[updateEmpresaSelectOptions] empresaUsuarioSelect.innerHTML atualizado para:', optionsHtml); // Log do HTML do select
+        } else {
+            console.warn('[updateEmpresaSelectOptions] Elemento empresaUsuarioSelect não encontrado no DOM.'); // Aviso se o elemento não for encontrado
         }
     }
 
@@ -1238,6 +1245,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (listaUsuarios) {
             listaUsuarios.innerHTML = usuariosHtml;
             console.log('[renderUsuarios] listaUsuarios.innerHTML atualizado.'); // Log de atualização do DOM
+            console.log('[renderUsuarios] listaUsuarios offsetWidth:', listaUsuarios.offsetWidth, 'offsetHeight:', listaUsuarios.offsetHeight); // Log de dimensões
         } else {
             console.warn('[renderUsuarios] Elemento listaUsuarios não encontrado no DOM.'); // Aviso se o elemento não for encontrado
         }
