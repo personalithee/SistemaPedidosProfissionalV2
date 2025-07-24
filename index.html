@@ -1,4 +1,4 @@
-
+DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -1127,14 +1127,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         empresasCache = data; // Atualiza o cache de empresas
         console.log('[renderEmpresas] Empresas carregadas:', data); // Log de dados carregados
-        // CORREÇÃO: Verifica se o `listaEmpresas` existe antes de manipular seu `innerHTML`
-        if (listaEmpresas) {
-            listaEmpresas.innerHTML = data.map(empresa => `
+        
+        let empresasHtml = '';
+        if (data.length === 0) {
+            empresasHtml = '<p>Nenhuma empresa cadastrada ainda.</p>';
+        } else {
+            empresasHtml = data.map(empresa => `
                 <div class="item-card">
                     <div><strong>${empresa.name}</strong><br><small>ID: ${empresa.id}</small></div>
                     <button class="delete-btn" data-id="${empresa.id}">Excluir</button>
                 </div>
             `).join('');
+        }
+        console.log('[renderEmpresas] HTML gerado para empresas:', empresasHtml); // Log do HTML gerado
+        if (listaEmpresas) {
+            listaEmpresas.innerHTML = empresasHtml;
         }
         updateEmpresaSelectOptions(); // Atualiza o select de empresas para usuários
     }
@@ -1203,9 +1210,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         console.log('[renderUsuarios] Usuários carregados:', data); // Log de dados carregados
-        // CORREÇÃO: Verifica se o `listaUsuarios` existe antes de manipular seu `innerHTML`
-        if (listaUsuarios) {
-            listaUsuarios.innerHTML = data.map(usuario => `
+        
+        let usuariosHtml = '';
+        if (data.length === 0) {
+            usuariosHtml = '<p>Nenhum usuário cadastrado ainda.</p>';
+        } else {
+            usuariosHtml = data.map(usuario => `
                 <div class="item-card">
                     <div>
                         <strong>${usuario.email}</strong><br>
@@ -1216,6 +1226,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button class="delete-btn" data-id="${usuario.id}">Excluir</button>
                 </div>
             `).join('');
+        }
+        console.log('[renderUsuarios] HTML gerado para usuários:', usuariosHtml); // Log do HTML gerado
+        if (listaUsuarios) {
+            listaUsuarios.innerHTML = usuariosHtml;
         }
         // Recarrega as empresas para o select de usuário
         await renderEmpresas(); 
