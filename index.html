@@ -33,7 +33,7 @@
         /* ESTILOS DO SISTEMA PRINCIPAL (CONTENT & ABAS) */
         .container { max-width: 1200px; margin: 0 auto; background-color: var(--card-bg); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; padding: 20px; } /* Adicionado padding aqui */
         nav { display: flex; background-color: var(--primary-color); position: relative; }
-        nav button { flex-grow: 1; padding: 15px 20px; border: none; background-color: var(--primary-color); color: white; font-size: 16px; cursor: pointer; transition: background-color 0.3s; border-bottom: 4px solid transparent; }
+        nav button { flex-grow: 1; padding: 15px 20px; border: none; background-color: var(--primary-color); color: white; font-size: 16px; cursor: pointer; transition: background-color 0.3s; border-bottom: 44px solid transparent; }
         nav button:hover { background-color: #357abd; }
         nav button.active { background-color: #357abd; border-bottom: 4px solid #fff; }
         #logout-btn-nav { background-color: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); font-size: 14px; transition: background-color 0.3s; z-index: 10; }
@@ -78,144 +78,150 @@
         .cliente-grupo-pedidos .item-list { grid-template-columns: 1fr; gap: 15px; }
     </style>
 </head>
-<body>
-
-    <div id="login-screen">
-        <div class="login-container">
-            <h1>Login no Sistema</h1>
+<body class="login-page">
+    <div class="container" id="app-container">
+        <!-- Conteúdo da página de login -->
+        <section id="login-section">
+            <h1>Bem-vindo ao Sistema de Pedidos!</h1>
+            <h2>Login</h2>
             <form id="login-form">
-                <div class="form-group">
-                    <label for="email">E-mail:</label>
-                    <input type="email" id="email" required placeholder="seuemail@exemplo.com">
-                </div>
-                <div class="form-group">
-                    <label for="password">Senha:</label>
-                    <input type="password" id="password" required placeholder="••••••••">
-                </div>
-                <button type="submit" id="login-btn">Entrar</button>
+                <input type="email" id="login-email" placeholder="Seu e-mail" required>
+                <input type="password" id="login-password" placeholder="Sua senha" required>
+                <button type="submit">Entrar</button>
             </form>
-            <div id="message" class="message" style="display: none;"></div>
-            <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
-                Não tem uma conta? Entre em contato para criar seu acesso.
-            </p>
-        </div>
-    </div>
+            <p>Acesso restrito. Entre em contato com o administrador para criar uma conta.</p>
+        </section>
 
-    <div class="container" id="main-system" style="display: none;">
-        <nav id="main-nav">
-            <button class="nav-btn active" data-tab="servicos">Serviços</button>
-            <button class="nav-btn" data-tab="clientes">Clientes</button>
-            <button class="nav-btn" data-tab="pedidos">Pedidos</button>
-            <button class="nav-btn" data-tab="relatorio">Relatório</button>
-            <button class="nav-btn admin-feature" data-tab="empresas" style="display: none;">Empresas</button>
-            <button class="nav-btn admin-feature" data-tab="usuarios" style="display: none;">Usuários</button>
-            <button id="logout-btn-nav">Sair</button>
-        </nav>
+        <!-- Conteúdo do Dashboard (inicialmente oculto) -->
+        <section id="dashboard-section" style="display: none;">
+            <header>
+                <h1>Bem-vindo ao Dashboard!</h1>
+                <p>Gerencie seus clientes, serviços e pedidos.</p>
+                <p>Usuário: <span id="user-email-display"></span> | Role: <span id="user-role-display"></span></p>
+                <button id="logout-button">Sair</button>
+            </header>
 
-        <div id="servicos-tab" class="tab-content active">
-            <h2>Gerenciar Serviços</h2>
-            <form id="form-servico">
-                <div class="form-group"><label for="nome-servico">Nome do Serviço</label><input type="text" id="nome-servico" required></div>
-                <div class="form-group"><label for="valor-servico">Valor (R$)</label><input type="number" id="valor-servico" step="0.01" min="0" required></div>
-                <!-- Novo campo de Descrição para Serviços -->
-                <div class="form-group" style="grid-column: 1 / -1;"><label for="descricao-servico">Descrição</label><textarea id="descricao-servico" rows="3"></textarea></div>
-                <button type="submit" id="btn-add-servico" style="grid-column: 1 / -1;">Adicionar Serviço</button>
-            </form>
-            <h3>Serviços Cadastrados</h3>
-            <div id="lista-servicos" class="item-list"></div>
-        </div>
+            <nav>
+                <button class="nav-btn active" data-tab="servicos">Serviços</button>
+                <button class="nav-btn" data-tab="clientes">Clientes</button>
+                <button class="nav-btn" data-tab="pedidos">Pedidos</button>
+                <button class="nav-btn" data-tab="relatorio">Relatório</button>
+                <!-- Seções visíveis apenas para Administradores -->
+                <button class="nav-btn admin-feature" data-tab="empresas" style="display: none;">Empresas</button>
+                <button class="nav-btn admin-feature" data-tab="usuarios" style="display: none;">Usuários</button>
+            </nav>
 
-        <div id="clientes-tab" class="tab-content">
-            <h2>Gerenciar Clientes</h2>
-            <form id="form-cliente">
-                <div class="form-group"><label for="nome-cliente">Nome do Cliente</label><input type="text" id="nome-cliente" required></div>
-                <div class="form-group"><label for="email-cliente">Email</label><input type="email" id="email-cliente"></div>
-                <div class="form-group"><label for="telefone-cliente">Telefone</label><input type="tel" id="telefone-cliente"></div>
-                <!-- Novos campos para Clientes -->
-                <div class="form-group"><label for="endereco-cliente">Endereço</label><input type="text" id="endereco-cliente"></div>
-                <div class="form-group"><label for="cnpj-cpf-cliente">CNPJ/CPF</label><input type="text" id="cnpj-cpf-cliente"></div>
-                <div class="form-group"><label for="responsavel-cliente">Responsável</label><input type="text" id="responsavel-cliente"></div>
-                <button type="submit" id="btn-add-cliente" style="grid-column: 1 / -1;">Adicionar Cliente</button>
-            </form>
-            <h3>Clientes Cadastrados</h3>
-            <div id="lista-clientes" class="item-list"></div>
-        </div>
+            <main>
+                <!-- Seção de Serviços -->
+                <section id="servicos-tab" class="tab-content active">
+                    <h2>Gerenciar Serviços</h2>
+                    <form id="form-servico">
+                        <div class="form-group"><label for="nome-servico">Nome do Serviço</label><input type="text" id="nome-servico" required></div>
+                        <div class="form-group"><label for="valor-servico">Valor (R$)</label><input type="number" id="valor-servico" step="0.01" min="0" required></div>
+                        <!-- Novo campo de Descrição para Serviços -->
+                        <div class="form-group" style="grid-column: 1 / -1;"><label for="descricao-servico">Descrição</label><textarea id="descricao-servico" rows="3"></textarea></div>
+                        <button type="submit" id="btn-add-servico" style="grid-column: 1 / -1;">Adicionar Serviço</button>
+                    </form>
+                    <h3>Serviços Cadastrados</h3>
+                    <div id="lista-servicos" class="item-list"></div>
+                </section>
 
-        <div id="pedidos-tab" class="tab-content">
-            <h2>Criar Novo Pedido</h2>
-            <form id="form-pedido">
-                <div class="form-group" style="grid-column: 1 / -1;"><label for="cliente-pedido">Cliente</label><select id="cliente-pedido" required></select></div>
-                <div class="form-group" style="grid-column: 1 / -1; background: #fff; padding: 15px; border-radius: 5px;">
-                    <h4>Adicionar Serviços ao Pedido</h4>
-                    <div style="display: flex; gap: 10px; align-items: flex-end;">
-                        <div class="form-group" style="flex-grow: 3;"><label for="servico-pedido">Serviço</label><select id="servico-pedido"></select></div>
-                        <div class="form-group" style="flex-grow: 1;"><label for="quantidade-servico">Qtde.</label><input type="number" id="quantidade-servico" value="1" min="1"></div>
-                        <button type="button" id="add-servico-pedido-btn" class="add-btn">Adicionar</button>
+                <!-- Seção de Clientes -->
+                <section id="clientes-tab" class="tab-content">
+                    <h2>Gerenciar Clientes</h2>
+                    <form id="form-cliente">
+                        <div class="form-group"><label for="nome-cliente">Nome do Cliente</label><input type="text" id="nome-cliente" required></div>
+                        <div class="form-group"><label for="email-cliente">Email</label><input type="email" id="email-cliente"></div>
+                        <div class="form-group"><label for="telefone-cliente">Telefone</label><input type="tel" id="telefone-cliente"></div>
+                        <!-- Novos campos para Clientes -->
+                        <div class="form-group"><label for="endereco-cliente">Endereço</label><input type="text" id="endereco-cliente"></div>
+                        <div class="form-group"><label for="cnpj-cpf-cliente">CNPJ/CPF</label><input type="text" id="cnpj-cpf-cliente"></div>
+                        <div class="form-group"><label for="responsavel-cliente">Responsável</label><input type="text" id="responsavel-cliente"></div>
+                        <button type="submit" id="btn-add-cliente" style="grid-column: 1 / -1;">Adicionar Cliente</button>
+                    </form>
+                    <h3>Clientes Cadastrados</h3>
+                    <div id="lista-clientes" class="item-list"></div>
+                </section>
+
+                <!-- Seção de Pedidos -->
+                <section id="pedidos-tab" class="tab-content">
+                    <h2>Criar Novo Pedido</h2>
+                    <form id="form-pedido">
+                        <div class="form-group" style="grid-column: 1 / -1;"><label for="cliente-pedido">Cliente</label><select id="cliente-pedido" required></select></div>
+                        <div class="form-group" style="grid-column: 1 / -1; background: #fff; padding: 15px; border-radius: 5px;">
+                            <h4>Adicionar Serviços ao Pedido</h4>
+                            <div style="display: flex; gap: 10px; align-items: flex-end;">
+                                <div class="form-group" style="flex-grow: 3;"><label for="servico-pedido">Serviço</label><select id="servico-pedido"></select></div>
+                                <div class="form-group" style="flex-grow: 1;"><label for="quantidade-servico">Qtde.</label><input type="number" id="quantidade-servico" value="1" min="1"></div>
+                                <button type="button" id="add-servico-pedido-btn" class="add-btn">Adicionar</button>
+                            </div>
+                            <ul id="pedido-servicos-selecionados"></ul>
+                        </div>
+                        <div class="form-group"><label for="desconto-pedido">Desconto (R$)</label><input type="number" id="desconto-pedido" step="0.01" min="0" value="0"></div>
+                        <div class="form-group" style="text-align: right;"><label>Valor Total</label><div id="total-pedido">R$ 0,00</div></div>
+                        <button type="submit" id="btn-add-pedido" style="grid-column: 1 / -1;">Criar Pedido</button>
+                    </form>
+                    <h2>Pedidos Ativos</h2>
+                    <div id="lista-pedidos" class="item-list"></div>
+                </section>
+
+                <!-- Seção de Relatório -->
+                <div id="relatorio-tab" class="tab-content">
+                    <h2>Relatório de Pedidos (Últimos 30 dias)</h2>
+                    <button id="exportar-relatorio-pdf">Exportar Relatório para PDF</button>
+                    
+                    <div id="resumo-pendencias" style="margin-top: 20px; padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--secondary-color);">
+                        <h3>Resumo de Valores Pendentes por Cliente</h3>
+                        <div id="lista-resumo-pendencias">
+                            <p class="loading">Calculando pendências...</p>
+                        </div>
                     </div>
-                    <ul id="pedido-servicos-selecionados"></ul>
+
+                    <div id="relatorio-container">
+                        <table class="report-table" id="tabela-relatorio">
+                            <thead><tr><th>ID Pedido</th><th>Cliente</th><th>Data Solicitação</th><th>Data Entrega</th><th>Valor Total</th><th>Status Pagamento</th><th>Status Entrega</th></tr></thead>
+                            <tbody id="corpo-tabela-relatorio"></tbody>
+                        </table>
+                    </div>
                 </div>
-                <div class="form-group"><label for="desconto-pedido">Desconto (R$)</label><input type="number" id="desconto-pedido" step="0.01" min="0" value="0"></div>
-                <div class="form-group" style="text-align: right;"><label>Valor Total</label><div id="total-pedido">R$ 0,00</div></div>
-                <button type="submit" id="btn-add-pedido" style="grid-column: 1 / -1;">Criar Pedido</button>
-            </form>
-            <h2>Pedidos Ativos</h2>
-            <div id="lista-pedidos" class="item-list"></div>
-        </div>
 
-        <div id="relatorio-tab" class="tab-content">
-            <h2>Relatório de Pedidos (Últimos 30 dias)</h2>
-            <button id="exportar-relatorio-pdf">Exportar Relatório para PDF</button>
-            
-            <div id="resumo-pendencias" style="margin-top: 20px; padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--secondary-color);">
-                <h3>Resumo de Valores Pendentes por Cliente</h3>
-                <div id="lista-resumo-pendencias">
-                    <p class="loading">Calculando pendências...</p>
+                <!-- Seção de Gerenciamento de Empresas (APENAS ADMIN) -->
+                <div id="empresas-tab" class="tab-content admin-only" style="display: none;">
+                    <h2>Gerenciar Empresas</h2>
+                    <form id="form-empresa">
+                        <div class="form-group"><label for="nome-empresa">Nome da Empresa</label><input type="text" id="nome-empresa" required></div>
+                        <button type="submit" id="btn-add-empresa" style="grid-column: 1 / -1;">Adicionar Empresa</button>
+                    </form>
+                    <h3>Empresas Cadastradas</h3>
+                    <div id="lista-empresas" class="item-list"></div>
                 </div>
-            </div>
 
-            <div id="relatorio-container">
-                <table class="report-table" id="tabela-relatorio">
-                    <thead><tr><th>ID Pedido</th><th>Cliente</th><th>Data Solicitação</th><th>Data Entrega</th><th>Valor Total</th><th>Status Pagamento</th><th>Status Entrega</th></tr></thead>
-                    <tbody id="corpo-tabela-relatorio"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Seção de Gerenciamento de Empresas (APENAS ADMIN) -->
-        <div id="empresas-tab" class="tab-content admin-only" style="display: none;">
-            <h2>Gerenciar Empresas</h2>
-            <form id="form-empresa">
-                <div class="form-group"><label for="nome-empresa">Nome da Empresa</label><input type="text" id="nome-empresa" required></div>
-                <button type="submit" id="btn-add-empresa" style="grid-column: 1 / -1;">Adicionar Empresa</button>
-            </form>
-            <h3>Empresas Cadastradas</h3>
-            <div id="lista-empresas" class="item-list"></div>
-        </div>
-
-        <!-- Seção de Gerenciamento de Usuários (APENAS ADMIN) -->
-        <div id="usuarios-tab" class="tab-content admin-only" style="display: none;">
-            <h2>Gerenciar Usuários</h2>
-            <form id="form-usuario">
-                <div class="form-group"><label for="email-usuario">Email</label><input type="email" id="email-usuario" required></div>
-                <div class="form-group"><label for="senha-usuario">Senha (deixe em branco para não alterar)</label><input type="password" id="senha-usuario"></div>
-                <div class="form-group"><label for="nome-completo-usuario">Nome Completo</label><input type="text" id="nome-completo-usuario"></div>
-                <div class="form-group"><label for="role-usuario">Permissão</label>
-                    <select id="role-usuario" required>
-                        <option value="user">Usuário</option>
-                        <option value="admin">Administrador</option>
-                    </select>
+                <!-- Seção de Gerenciamento de Usuários (APENAS ADMIN) -->
+                <div id="usuarios-tab" class="tab-content admin-only" style="display: none;">
+                    <h2>Gerenciar Usuários</h2>
+                    <form id="form-usuario">
+                        <div class="form-group"><label for="email-usuario">Email</label><input type="email" id="email-usuario" required></div>
+                        <div class="form-group"><label for="senha-usuario">Senha (deixe em branco para não alterar)</label><input type="password" id="senha-usuario"></div>
+                        <div class="form-group"><label for="nome-completo-usuario">Nome Completo</label><input type="text" id="nome-completo-usuario"></div>
+                        <div class="form-group"><label for="role-usuario">Permissão</label>
+                            <select id="role-usuario" required>
+                                <option value="user">Usuário</option>
+                                <option value="admin">Administrador</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label for="empresa-usuario">Empresa</label>
+                            <select id="empresa-usuario" required>
+                                <option value="">Selecione uma empresa</option>
+                            </select>
+                        </div>
+                        <button type="submit" id="btn-add-usuario" style="grid-column: 1 / -1;">Adicionar Usuário</button>
+                    </form>
+                    <h3>Usuários Cadastrados</h3>
+                    <div id="lista-usuarios" class="item-list"></div>
                 </div>
-                <div class="form-group"><label for="empresa-usuario">Empresa</label>
-                    <select id="empresa-usuario" required>
-                        <option value="">Selecione uma empresa</option>
-                    </select>
-                </div>
-                <button type="submit" id="btn-add-usuario" style="grid-column: 1 / -1;">Adicionar Usuário</button>
-            </form>
-            <h3>Usuários Cadastrados</h3>
-            <div id="lista-usuarios" class="item-list"></div>
-        </div>
 
+            </main>
+        </section>
     </div>
     <div class="modal-overlay" id="comprovante-modal">
         <div class="modal-content">
@@ -252,12 +258,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentUserCompanyId = null; // ID da empresa do usuário logado
 
     // --- VARIÁVEIS E ELEMENTOS DA TELA DE LOGIN ---
-    const loginScreen = document.getElementById('login-screen');
-    const mainSystem = document.getElementById('main-system');
+    const loginScreen = document.getElementById('login-section');
+    const dashboardSection = document.getElementById('dashboard-section'); // Nova seção para o dashboard
     const loginForm = document.getElementById('login-form');
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-    const loginBtn = document.getElementById('login-btn');
+    const emailInput = document.getElementById('login-email');
+    const passwordInput = document.getElementById('login-password');
+    const loginBtn = loginForm.querySelector('button[type="submit"]');
     const messageDiv = document.getElementById('message');
 
     // --- FUNÇÕES AUXILIARES ---
@@ -301,7 +307,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 loginBtn.textContent = 'Entrar';
             } else {
                 showMessage('Login realizado com sucesso! Carregando sistema...', 'success');
-                // Chame a função que inicializa o sistema após login
                 await initSystem(); 
             }
         } catch (err) {
@@ -316,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const navButtons = document.querySelectorAll('.nav-btn');
     const tabContents = document.querySelectorAll('.tab-content');
     
-    const mainNav = document.getElementById('main-nav');
+    const mainNav = document.querySelector('nav'); // Seleciona a tag nav diretamente
     mainNav.addEventListener('click', handleNavClick);
 
     function handleNavClick(e) {
@@ -326,7 +331,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(`[handleNavClick] Botão clicado: ${tabId}`); // Log de navegação
 
         // Controle de acesso baseado na role
-        // Usuários com role 'user' só podem acessar 'servicos', 'clientes', 'pedidos', 'relatorio'
         if (currentUserRole === 'user') {
             if (tabId === 'empresas' || tabId === 'usuarios') {
                 alert('Você não tem permissão para acessar esta seção.');
@@ -359,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Função de Logout
-    document.getElementById('logout-btn-nav').addEventListener('click', async () => {
+    document.getElementById('logout-button').addEventListener('click', async () => { // Botão de logout no header
         const { error } = await supabaseClient.auth.signOut();
         if (error) {
             showAlertError(error, 'Erro ao fazer logout.');
@@ -367,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentUserRole = 'guest'; // Resetar a role
             currentUserCompanyId = null; // Resetar company_id
             loginScreen.style.display = 'flex';
-            mainSystem.style.display = 'none';
+            dashboardSection.style.display = 'none'; // Esconde o dashboard
             showMessage('Você foi desconectado.', 'success');
             // Opcional: Recarregar a página para garantir estado limpo
             // window.location.reload(); 
@@ -379,12 +383,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (user) {
             loginScreen.style.display = 'none';
-            mainSystem.style.display = 'block';
+            dashboardSection.style.display = 'block';
 
             // Buscar o perfil do usuário para determinar a role e company_id
             const { data: profile, error } = await supabaseClient
                 .from('profiles')
-                .select('role, company_id')
+                .select('role, company_id, email') // Incluir email para display
                 .eq('id', user.id)
                 .single();
 
@@ -392,28 +396,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Erro ao buscar perfil:', error);
                 currentUserRole = 'user'; // Padrão seguro em caso de erro
                 currentUserCompanyId = null; // Garante que não há company_id inválido
+                userEmailDisplay.textContent = user.email; // Exibe o email da autenticação
+                userRoleDisplay.textContent = 'user (erro no perfil)';
                 console.log('Usuário logado com role: user (padrão devido a erro de perfil)');
             } else {
                 currentUserRole = profile.role;
                 currentUserCompanyId = profile.company_id; 
+                userEmailDisplay.textContent = profile.email;
+                userRoleDisplay.textContent = profile.role;
                 console.log(`Usuário logado com role: ${currentUserRole}, Company ID: ${currentUserCompanyId}`);
-            }
-
-            // Renderiza a aba ativa inicialmente (Serviços por padrão)
-            const activeTabButton = document.querySelector('.nav-btn.active');
-            if (activeTabButton) {
-                const tabId = activeTabButton.dataset.tab;
-                tabContents.forEach(content => content.classList.toggle('active', content.id === `${tabId}-tab`));
-                // Dispara o carregamento dos dados da aba ativa
-                if (tabId === 'relatorio') renderRelatorio();
-                else if (tabId === 'servicos') renderServicos();
-                else if (tabId === 'clientes') renderClientes();
-                else if (tabId === 'pedidos') renderPedidos();
-                else if (tabId === 'empresas') renderEmpresas();
-                else if (tabId === 'usuarios') renderUsuarios();
-            } else {
-                // Se nenhuma aba estiver ativa (o que não deve acontecer), renderiza serviços
-                renderServicos();
             }
 
             // Exibir/ocultar botões de administração com base na role
@@ -425,9 +416,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
+            // Renderiza a aba ativa inicialmente (Serviços por padrão)
+            // Se o usuário for admin, ele pode ter vindo de uma aba admin.
+            // Se for user, sempre começa em serviços.
+            let initialTab = 'servicos';
+            if (currentUserRole === 'admin') {
+                const lastActiveTab = localStorage.getItem('lastActiveTab');
+                if (lastActiveTab && document.getElementById(`${lastActiveTab}-tab`)) {
+                    initialTab = lastActiveTab;
+                }
+            }
+            
+            // Ativa o botão de navegação correspondente à aba inicial
+            navButtons.forEach(btn => {
+                if (btn.dataset.tab === initialTab) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Exibe o conteúdo da aba inicial
+            tabContents.forEach(content => {
+                content.classList.toggle('active', content.id === `${initialTab}-tab`);
+            });
+
+            // Dispara o carregamento dos dados da aba ativa
+            if (initialTab === 'relatorio') renderRelatorio();
+            else if (initialTab === 'servicos') renderServicos();
+            else if (initialTab === 'clientes') renderClientes();
+            else if (initialTab === 'pedidos') renderPedidos();
+            else if (initialTab === 'empresas') renderEmpresas();
+            else if (initialTab === 'usuarios') renderUsuarios();
+
         } else {
             loginScreen.style.display = 'flex';
-            mainSystem.style.display = 'none';
+            dashboardSection.style.display = 'none';
         }
     }
 
@@ -467,10 +491,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span>${formatCurrency(servico.valor)}</span>
                     ${servico.descricao ? `<br><small>${servico.descricao}</small>` : ''}
                 </div>
-                <button class="delete-btn" data-id="${servico.id}">Excluir</button>
+                <div>
+                    <button class="edit-btn" data-id="${servico.id}" data-type="servico">Editar</button>
+                    <button class="delete-btn" data-id="${servico.id}" data-type="servico">Excluir</button>
+                </div>
             </div>
         `).join('');
         updatePedidoFormOptions();
+        addServicoActionListeners();
     }
 
     formServico.addEventListener('submit', async (e) => {
@@ -481,40 +509,69 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const nomeServico = document.getElementById('nome-servico').value;
         let valorServico = parseFloat(document.getElementById('valor-servico').value);
-        const descricaoServico = document.getElementById('descricao-servico').value; // Captura a descrição
+        const descricaoServico = document.getElementById('descricao-servico').value;
 
-        // Adicionar validação para garantir que valorServico é um número válido
         if (isNaN(valorServico)) {
             showAlertError(null, 'O valor do serviço deve ser um número válido.');
             btn.disabled = false;
             btn.textContent = 'Adicionar Serviço';
-            return; // Interrompe a função se o valor não for válido
+            return;
         }
 
-        // Garante que o company_id seja incluído
-        const { error } = await supabaseClient.from('servicos').insert([{ 
-            nome: nomeServico, 
-            valor: valorServico, 
-            descricao: descricaoServico, // Inclui a descrição
-            company_id: currentUserCompanyId 
-        }]);
-        if (error) showAlertError(error, 'Erro ao adicionar serviço.');
+        const editingId = formServico.dataset.editingId;
+
+        let dbOperation;
+        if (editingId) {
+            dbOperation = supabaseClient.from('servicos').update({ 
+                nome: nomeServico, 
+                valor: valorServico, 
+                descricao: descricaoServico 
+            }).eq('id', editingId).eq('company_id', currentUserCompanyId);
+        } else {
+            dbOperation = supabaseClient.from('servicos').insert([{ 
+                nome: nomeServico, 
+                valor: valorServico, 
+                descricao: descricaoServico, 
+                company_id: currentUserCompanyId 
+            }]);
+        }
+        
+        const { error } = await dbOperation;
+        if (error) showAlertError(error, 'Erro ao salvar serviço.');
         else {
             formServico.reset();
+            delete formServico.dataset.editingId;
+            btn.textContent = 'Adicionar Serviço';
             await renderServicos();
         }
         btn.disabled = false;
-        btn.textContent = 'Adicionar Serviço';
     });
 
-    listaServicos.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('delete-btn') && confirm('Tem certeza que deseja excluir este serviço?')) {
-            const id = e.target.dataset.id;
-            const { error } = await supabaseClient.from('servicos').delete().eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
-            if (error) showAlertError(error, 'Erro ao excluir serviço. Verifique se ele não está em uso em algum pedido.');
-            else await renderServicos();
-        }
-    });
+    function addServicoActionListeners() {
+        document.querySelectorAll('#lista-servicos .delete-btn[data-type="servico"]').forEach(button => {
+            button.onclick = async () => {
+                if (confirm('Tem certeza que deseja excluir este serviço?')) {
+                    const id = button.dataset.id;
+                    const { error } = await supabaseClient.from('servicos').delete().eq('id', id).eq('company_id', currentUserCompanyId);
+                    if (error) showAlertError(error, 'Erro ao excluir serviço. Verifique se ele não está em uso em algum pedido.');
+                    else await renderServicos();
+                }
+            };
+        });
+        document.querySelectorAll('#lista-servicos .edit-btn[data-type="servico"]').forEach(button => {
+            button.onclick = async () => {
+                const id = button.dataset.id;
+                const servico = servicosCache.find(s => s.id === id);
+                if (servico) {
+                    document.getElementById('nome-servico').value = servico.nome;
+                    document.getElementById('valor-servico').value = servico.valor;
+                    document.getElementById('descricao-servico').value = servico.descricao;
+                    formServico.dataset.editingId = servico.id;
+                    document.getElementById('btn-add-servico').textContent = 'Atualizar Serviço';
+                }
+            };
+        });
+    }
 
     // --- LÓGICA DE CLIENTES ---
     const formCliente = document.getElementById('form-cliente');
@@ -550,10 +607,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${cliente.cnpj_cpf ? `<br><small>CNPJ/CPF: ${cliente.cnpj_cpf}</small>` : ''}
                     ${cliente.responsavel ? `<br><small>Responsável: ${cliente.responsavel}</small>` : ''}
                 </div>
-                <button class="delete-btn" data-id="${cliente.id}">Excluir</button>
+                <div>
+                    <button class="edit-btn" data-id="${cliente.id}" data-type="cliente">Editar</button>
+                    <button class="delete-btn" data-id="${cliente.id}" data-type="cliente">Excluir</button>
+                </div>
             </div>
         `).join('');
         updatePedidoFormOptions();
+        addClienteActionListeners();
     }
 
     formCliente.addEventListener('submit', async (e) => {
@@ -561,41 +622,76 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = document.getElementById('btn-add-cliente');
         btn.disabled = true;
         btn.textContent = 'Adicionando...';
-        // Captura os novos campos
+        
         const nomeCliente = document.getElementById('nome-cliente').value;
         const emailCliente = document.getElementById('email-cliente').value;
         const telefoneCliente = document.getElementById('telefone-cliente').value;
         const enderecoCliente = document.getElementById('endereco-cliente').value;
         const cnpjCpfCliente = document.getElementById('cnpj-cpf-cliente').value;
         const responsavelCliente = document.getElementById('responsavel-cliente').value;
+        const editingId = formCliente.dataset.editingId;
 
-        // Garante que o company_id seja incluído
-        const { error } = await supabaseClient.from('clientes').insert([{ 
-            nome: nomeCliente, 
-            email: emailCliente, 
-            telefone: telefoneCliente,
-            endereco: enderecoCliente, // Inclui o endereço
-            cnpj_cpf: cnpjCpfCliente, // Inclui o CNPJ/CPF
-            responsavel: responsavelCliente, // Inclui o responsável
-            company_id: currentUserCompanyId 
-        }]);
-        if (error) showAlertError(error, 'Erro ao adicionar cliente.');
+        let dbOperation;
+        if (editingId) {
+            dbOperation = supabaseClient.from('clientes').update({ 
+                nome: nomeCliente, 
+                email: emailCliente, 
+                telefone: telefoneCliente,
+                endereco: enderecoCliente, 
+                cnpj_cpf: cnpjCpfCliente, 
+                responsavel: responsavelCliente 
+            }).eq('id', editingId).eq('company_id', currentUserCompanyId);
+        } else {
+            dbOperation = supabaseClient.from('clientes').insert([{ 
+                nome: nomeCliente, 
+                email: emailCliente, 
+                telefone: telefoneCliente,
+                endereco: enderecoCliente, 
+                cnpj_cpf: cnpjCpfCliente, 
+                responsavel: responsavelCliente,
+                company_id: currentUserCompanyId 
+            }]);
+        }
+        
+        const { error } = await dbOperation;
+        if (error) showAlertError(error, 'Erro ao salvar cliente.');
         else {
             formCliente.reset();
+            delete formCliente.dataset.editingId;
+            btn.textContent = 'Adicionar Cliente';
             await renderClientes();
         }
         btn.disabled = false;
-        btn.textContent = 'Adicionar Cliente';
     });
 
-    listaClientes.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('delete-btn') && confirm('Tem certeza que deseja excluir este cliente?')) {
-            const id = e.target.dataset.id;
-            const { error } = await supabaseClient.from('clientes').delete().eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
-            if (error) showAlertError(error, 'Erro ao excluir cliente. Pedidos associados a ele não serão excluídos.');
-            else await renderClientes();
-        }
-    });
+    function addClienteActionListeners() {
+        document.querySelectorAll('#lista-clientes .delete-btn[data-type="cliente"]').forEach(button => {
+            button.onclick = async () => {
+                if (confirm('Tem certeza que deseja excluir este cliente?')) {
+                    const id = button.dataset.id;
+                    const { error } = await supabaseClient.from('clientes').delete().eq('id', id).eq('company_id', currentUserCompanyId);
+                    if (error) showAlertError(error, 'Erro ao excluir cliente. Pedidos associados a ele não serão excluídos.');
+                    else await renderClientes();
+                }
+            };
+        });
+        document.querySelectorAll('#lista-clientes .edit-btn[data-type="cliente"]').forEach(button => {
+            button.onclick = async () => {
+                const id = button.dataset.id;
+                const cliente = clientesCache.find(c => c.id === id);
+                if (cliente) {
+                    document.getElementById('nome-cliente').value = cliente.nome;
+                    document.getElementById('email-cliente').value = cliente.email;
+                    document.getElementById('telefone-cliente').value = cliente.telefone;
+                    document.getElementById('endereco-cliente').value = cliente.endereco;
+                    document.getElementById('cnpj-cpf-cliente').value = cliente.cnpj_cpf;
+                    document.getElementById('responsavel-cliente').value = cliente.responsavel;
+                    formCliente.dataset.editingId = cliente.id;
+                    document.getElementById('btn-add-cliente').textContent = 'Atualizar Cliente';
+                }
+            };
+        });
+    }
 
     // --- LÓGICA DE PEDIDOS ---
     const formPedido = document.getElementById('form-pedido');
@@ -615,7 +711,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     document.getElementById('add-servico-pedido-btn').addEventListener('click', () => {
-        const servicoId = servicoPedidoSelect.value; // Removido parseInt, agora é string (UUID)
+        const servicoId = servicoPedidoSelect.value;
         const quantidade = parseInt(document.getElementById('quantidade-servico').value);
         
         console.log('Tentando adicionar serviço ao pedido:');
@@ -628,17 +724,17 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Validação falhou: ID do serviço ou quantidade inválida.');
             return;
         }
-        // Garante que a comparação seja entre strings (UUIDs)
         const servico = servicosCache.find(s => String(s.id) === String(servicoId)); 
         
         if (servico) {
             console.log('Serviço encontrado no cache:', servico);
-            // Verifica se o serviço já está na lista e atualiza a quantidade
             const existingServiceIndex = servicosNoPedidoAtual.findIndex(item => String(item.id) === String(servicoId));
             if (existingServiceIndex > -1) {
                 servicosNoPedidoAtual[existingServiceIndex].quantidade += quantidade;
+                console.log('Quantidade do serviço existente atualizada:', servicosNoPedidoAtual[existingServiceIndex]);
             } else {
                 servicosNoPedidoAtual.push({ ...servico, quantidade });
+                console.log('Novo serviço adicionado à lista do pedido:', servicosNoPedidoAtual[servicosNoPedidoAtual.length - 1]);
             }
             
             renderServicosDoPedido();
@@ -673,7 +769,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     formPedido.addEventListener('submit', async (e) => {
         e.preventDefault();
-        // CORREÇÃO: clienteId agora é uma string (UUID)
         const clienteId = clientePedidoSelect.value; 
         
         if (!clienteId || servicosNoPedidoAtual.length === 0) {
@@ -690,7 +785,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const desconto = parseFloat(document.getElementById('desconto-pedido').value) || 0;
         const totalFinal = Math.max(0, totalOriginal - desconto);
 
-        // Obtenha a sessão atual para pegar o user_id de forma correta
         const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
 
         if (sessionError || !session) {
@@ -704,7 +798,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Dados do pedido a serem inseridos:');
         console.log('cliente_id:', clienteId);
         console.log('servicos:', servicosNoPedidoAtual);
-        console.log('desconto:', desconto); // Log do valor de desconto
+        console.log('desconto:', desconto);
         console.log('total_original:', totalOriginal);
         console.log('total_final:', totalFinal);
         console.log('user_id:', session.user.id);
@@ -713,16 +807,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const { error } = await supabaseClient.from('pedidos').insert([{
             cliente_id: clienteId,
             servicos: servicosNoPedidoAtual,
-            desconto, // Certifique-se de que esta coluna existe e é do tipo correto (NUMERIC)
+            desconto,
             total_original: totalOriginal,
             total_final: totalFinal,
             user_id: session.user.id, 
-            company_id: currentUserCompanyId // Adiciona o company_id
+            company_id: currentUserCompanyId 
         }]);
 
         if (error) {
             showAlertError(error, 'Erro ao criar pedido. Verifique o console para mais detalhes.');
-            console.error('Erro detalhado na inserção do pedido:', error); // Log detalhado do erro
+            console.error('Erro detalhado na inserção do pedido:', error);
         } else {
             console.log('Pedido criado com sucesso!');
             formPedido.reset();
@@ -742,7 +836,6 @@ document.addEventListener('DOMContentLoaded', () => {
             .select('*, clientes(nome, email, telefone)') 
             .order('data_solicitacao', { ascending: false }); 
             
-        // Se o usuário NÃO for admin, ele DEVE pertencer a uma empresa para ver dados.
         if (currentUserRole !== 'admin') {
             if (currentUserCompanyId) {
                 query = query.eq('company_id', currentUserCompanyId);
@@ -880,16 +973,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (type === 'pagamento') updateData = { status_pagamento: value };
             else if (type === 'entrega') updateData = { status_entrega: value };
 
-            const { error } = await supabaseClient.from('pedidos').update(updateData).eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
+            const { error } = await supabaseClient.from('pedidos').update(updateData).eq('id', id).eq('company_id', currentUserCompanyId);
             if (error) showAlertError(error, `Erro ao atualizar status de ${type}.`);
-            else renderPedidos(); // Recarrega para mostrar o status atualizado
+            else renderPedidos();
         } else if (e.target.classList.contains('data-entrega-input')) {
             const id = e.target.dataset.id;
-            const value = e.target.value; // Formato YYYY-MM-DD
-            // Para garantir que o Supabase interprete como UTC para compatibilidade
+            const value = e.target.value;
             const dateUTC = value ? new Date(value + 'T00:00:00Z').toISOString() : null;
 
-            const { error } = await supabaseClient.from('pedidos').update({ data_entrega: dateUTC }).eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
+            const { error } = await supabaseClient.from('pedidos').update({ data_entrega: dateUTC }).eq('id', id).eq('company_id', currentUserCompanyId);
             if (error) showAlertError(error, 'Erro ao atualizar data de entrega.');
             else renderPedidos();
         }
@@ -898,7 +990,7 @@ document.addEventListener('DOMContentLoaded', () => {
     listaPedidos.addEventListener('click', async (e) => {
         if (e.target.classList.contains('delete-btn') && confirm('Tem certeza que deseja excluir este pedido?')) {
             const id = e.target.dataset.id;
-            const { error } = await supabaseClient.from('pedidos').delete().eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
+            const { error } = await supabaseClient.from('pedidos').delete().eq('id', id).eq('company_id', currentUserCompanyId);
             if (error) showAlertError(error, 'Erro ao excluir pedido.');
             else await renderPedidos();
         }
@@ -926,13 +1018,12 @@ document.addEventListener('DOMContentLoaded', () => {
             .gte('data_solicitacao', dataMinima)
             .order('data_solicitacao', { ascending: false });
 
-        // Se o usuário NÃO for admin, ele DEVE pertencer a uma empresa para ver dados.
         if (currentUserRole !== 'admin') {
             if (currentUserCompanyId) {
                 query = query.eq('company_id', currentUserCompanyId);
             } else {
                 corpoTabelaRelatorio.innerHTML = '<tr><td colspan="7">Você não está associado a uma empresa. Por favor, entre em contato com o administrador para ter acesso ao relatório.</td></tr>';
-                listaResumoPendencias.innerHTML = '';
+                listaResumoPendencias.innerHTML = '<p>Você não está associado a uma empresa. Por favor, entre em contato com o administrador para ter acesso ao resumo de pendências.</p>';
                 return;
             }
         }
@@ -966,13 +1057,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const resumoPendencias = {};
 
         pedidos.forEach(pedido => {
-            if (pedido.status_pagamento === 'Pendente') {
+            console.log(`Debug Resumo Pendencias: Pedido ID: ${pedido.id}, Status Pagamento: '${pedido.status_pagamento}'`);
+            if (pedido.status_pagamento && pedido.status_pagamento.trim() === 'Pendente') {
+                console.log(`Debug Resumo Pendencias: Pedido ${pedido.id} É PENDENTE.`);
                 const clienteNome = pedido.clientes ? pedido.clientes.nome : 'Cliente Removido';
                 if (!resumoPendencias[clienteNome]) {
                     resumoPendencias[clienteNome] = { nome: clienteNome, totalPendente: 0, pedidos: [] };
                 }
                 resumoPendencias[clienteNome].totalPendente += pedido.total_final;
                 resumoPendencias[clienteNome].pedidos.push(pedido);
+            } else {
+                console.log(`Debug Resumo Pendencias: Pedido ${pedido.id} NÃO É PENDENTE. Status: '${pedido.status_pagamento}'`);
             }
         });
 
@@ -1134,30 +1229,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const empresaUsuarioSelect = document.getElementById('empresa-usuario'); // Select de empresa na criação de usuário
 
     async function renderEmpresas() {
-        console.log('[renderEmpresas] Função chamada.'); // Log de entrada
+        console.log('[renderEmpresas] Função chamada.');
         if (currentUserRole !== 'admin') {
             listaEmpresas.innerHTML = '<p>Você não tem permissão para visualizar empresas.</p>';
-            console.log('[renderEmpresas] Usuário não é admin, acesso negado.'); // Log de permissão
+            console.log('[renderEmpresas] Usuário não é admin, acesso negado.');
             return;
         }
         showLoading(listaEmpresas);
-        console.log('[renderEmpresas] Tentando carregar empresas do Supabase...'); // Log de carregamento
+        console.log('[renderEmpresas] Tentando carregar empresas do Supabase...');
         const { data, error } = await supabaseClient.from('companies').select('*').order('name', { ascending: true });
         if (error) {
             showAlertError(error, 'Não foi possível carregar as empresas.');
             listaEmpresas.innerHTML = '';
-            console.error('[renderEmpresas] Erro ao carregar empresas:', error); // Log de erro
+            console.error('[renderEmpresas] Erro ao carregar empresas:', error);
             return;
         }
-        empresasCache = data; // Atualiza o cache de empresas
-        console.log('[renderEmpresas] Empresas carregadas:', data); // Log de dados carregados
+        empresasCache = data;
+        console.log('[renderEmpresas] Empresas carregadas:', data);
         listaEmpresas.innerHTML = data.map(empresa => `
             <div class="item-card">
                 <div><strong>${empresa.name}</strong><br><small>ID: ${empresa.id}</small></div>
                 <button class="delete-btn" data-id="${empresa.id}">Excluir</button>
             </div>
         `).join('');
-        updateEmpresaSelectOptions(); // Atualiza o select de empresas para usuários
+        updateEmpresaSelectOptions();
     }
 
     formEmpresa.addEventListener('submit', async (e) => {
@@ -1170,7 +1265,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const nomeEmpresa = document.getElementById('nome-empresa').value;
         
-        // Chamada RPC para criar a empresa e associar o admin
         const { data, error } = await supabaseClient.rpc('create_new_company', { company_name: nomeEmpresa });
 
         if (error) {
@@ -1205,22 +1299,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const listaUsuarios = document.getElementById('lista-usuarios');
 
     async function renderUsuarios() {
-        console.log('[renderUsuarios] Função chamada.'); // Log de entrada
+        console.log('[renderUsuarios] Função chamada.');
         if (currentUserRole !== 'admin') {
             listaUsuarios.innerHTML = '<p>Você não tem permissão para visualizar usuários.</p>';
-            console.log('[renderUsuarios] Usuário não é admin, acesso negado.'); // Log de permissão
+            console.log('[renderUsuarios] Usuário não é admin, acesso negado.');
             return;
         }
         showLoading(listaUsuarios);
-        console.log('[renderUsuarios] Tentando carregar usuários do Supabase...'); // Log de carregamento
+        console.log('[renderUsuarios] Tentando carregar usuários do Supabase...');
         const { data, error } = await supabaseClient.from('profiles').select('*, companies(name)').order('email', { ascending: true });
         if (error) {
             showAlertError(error, 'Não foi possível carregar os usuários.');
             listaUsuarios.innerHTML = '';
-            console.error('[renderUsuarios] Erro ao carregar usuários:', error); // Log de erro
+            console.error('[renderUsuarios] Erro ao carregar usuários:', error);
             return;
         }
-        console.log('[renderUsuarios] Usuários carregados:', data); // Log de dados carregados
+        console.log('[renderUsuarios] Usuários carregados:', data);
         listaUsuarios.innerHTML = data.map(usuario => `
             <div class="item-card">
                 <div>
@@ -1232,7 +1326,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button class="delete-btn" data-id="${usuario.id}">Excluir</button>
             </div>
         `).join('');
-        // Recarrega as empresas para o select de usuário
         await renderEmpresas(); 
     }
 
@@ -1258,11 +1351,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // Primeiro, cria o usuário na autenticação do Supabase
             const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
                 email: email,
                 password: password,
-                email_confirm: true // Opcional: envia email de confirmação
+                email_confirm: true
             });
 
             if (authError) {
@@ -1274,7 +1366,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const userId = authData.user.id;
 
-            // Em seguida, cria o perfil na tabela 'profiles' usando a função RPC
             const { error: rpcError } = await supabaseClient.rpc('create_profile_for_user', {
                 user_id: userId,
                 user_email: email,
@@ -1285,7 +1376,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (rpcError) {
                 showAlertError(rpcError, 'Erro ao criar perfil do usuário. O usuário na autenticação será removido.');
-                // Se o perfil falhar, tente reverter a criação do usuário na autenticação
                 await supabaseClient.auth.admin.deleteUser(userId);
                 console.error('Usuário de autenticação revertido devido a falha na criação do perfil.');
             } else {
@@ -1305,7 +1395,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.classList.contains('delete-btn') && currentUserRole === 'admin') {
             if (confirm('Tem certeza que deseja excluir este usuário? Isso removerá o acesso e o perfil dele. Esta ação é irreversível!')) {
                 const id = e.target.dataset.id;
-                const { error } = await supabaseClient.auth.admin.deleteUser(id); // Exclui da autenticação, o trigger deve cuidar do perfil
+                const { error } = await supabaseClient.auth.admin.deleteUser(id);
                 if (error) showAlertError(error, 'Erro ao excluir usuário.');
                 else await renderUsuarios();
             }
