@@ -101,6 +101,13 @@
     </div>
 
     <div class="container" id="main-system" style="display: none;">
+        <header>
+            <h1>Bem-vindo ao Dashboard!</h1>
+            <p>Gerencie seus clientes, serviços e pedidos.</p>
+            <p>Usuário: <span id="user-email-display"></span> | Role: <span id="user-role-display"></span></p>
+            <button id="logout-btn-nav">Sair</button>
+        </header>
+
         <nav id="main-nav">
             <button class="nav-btn active" data-tab="servicos">Serviços</button>
             <button class="nav-btn" data-tab="clientes">Clientes</button>
@@ -108,7 +115,6 @@
             <button class="nav-btn" data-tab="relatorio">Relatório</button>
             <button class="nav-btn admin-feature" data-tab="empresas" style="display: none;">Empresas</button>
             <button class="nav-btn admin-feature" data-tab="usuarios" style="display: none;">Usuários</button>
-            <button id="logout-btn-nav">Sair</button>
         </nav>
 
         <div id="servicos-tab" class="tab-content active">
@@ -260,19 +266,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageDiv = document.getElementById('message');
 
     // --- Elementos do Dashboard (Adicionados) ---
-    const userEmailDisplay = document.createElement('span'); // Criado dinamicamente
-    userEmailDisplay.id = 'user-email-display';
-    const userRoleDisplay = document.createElement('span'); // Criado dinamicamente
-    userRoleDisplay.id = 'user-role-display';
-
-    // Adiciona os elementos ao header do main-system se eles existirem
-    const mainSystemHeader = document.querySelector('#main-system header');
-    if (mainSystemHeader) {
-        mainSystemHeader.appendChild(document.createTextNode('Usuário: '));
-        mainSystemHeader.appendChild(userEmailDisplay);
-        mainSystemHeader.appendChild(document.createTextNode(' | Role: '));
-        mainSystemHeader.appendChild(userRoleDisplay);
-    }
+    const userEmailDisplay = document.getElementById('user-email-display'); // Obtido por ID
+    const userRoleDisplay = document.getElementById('user-role-display'); // Obtido por ID
 
 
     // --- FUNÇÕES AUXILIARES ---
@@ -408,7 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentUserRole = 'user'; // Padrão seguro em caso de erro
                 currentUserCompanyId = null; // Garante que não há company_id inválido
                 userEmailDisplay.textContent = user.email; // Exibe o email da autenticação
-                userRoleDisplay.textContent = 'user (padrão devido a erro de perfil)';
+                userRoleDisplay.textContent = 'user (erro no perfil)';
                 console.log('Usuário logado com role: user (padrão devido a erro de perfil)');
             } else {
                 currentUserRole = profile.role;
@@ -865,7 +860,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
 
-            if (pedido.status_pagamento === 'Pendente') {
+            if (pedido.status_pagamento && pedido.status_pagamento.trim().toLowerCase() === 'pendente') { // Convertido para minúsculas
                 pedidosAgrupadosPorCliente[clienteKey].pedidosPendentes.push(pedido);
             } else {
                 pedidosAgrupadosPorCliente[clienteKey].outrosPedidos.push(pedido);
@@ -1053,8 +1048,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         pedidos.forEach(pedido => {
             console.log(`Debug Resumo Pendencias: Pedido ID: ${pedido.id}, Status Pagamento: '${pedido.status_pagamento}'`);
-            // Adicionado .trim() para garantir que espaços em branco não causem problemas na comparação
-            if (pedido.status_pagamento && pedido.status_pagamento.trim() === 'Pendente') { 
+            // CONVERTENDO PARA MINÚSCULAS ANTES DA COMPARAÇÃO
+            if (pedido.status_pagamento && pedido.status_pagamento.trim().toLowerCase() === 'pendente') { 
                 console.log(`Debug Resumo Pendencias: Pedido ${pedido.id} É PENDENTE.`);
                 const clienteNome = pedido.clientes ? pedido.clientes.nome : 'Cliente Removido';
                 if (!resumoPendencias[clienteNome]) {
