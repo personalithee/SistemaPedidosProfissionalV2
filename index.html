@@ -238,7 +238,8 @@
     // Função de polling para esperar que o Supabase esteja definido
     function waitForSupabase(callback) {
         console.log("waitForSupabase called."); // Log de depuração: Chamada da função
-        if (typeof window.Supabase !== 'undefined') { 
+        // CORREÇÃO: Verifica window.supabase (com 's' minúsculo)
+        if (typeof window.supabase !== 'undefined') { 
             console.log("Supabase found."); // Log de depuração: Supabase encontrado
             callback();
         } else {
@@ -261,8 +262,8 @@
         
         let supabaseClient;
         try {
-            // CORREÇÃO: Acessa o objeto global 'Supabase' (maiúsculo) exposto pelo CDN
-            supabaseClient = window.Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            // CORREÇÃO: Acessa o objeto global 'supabase' (minúsculo) exposto pelo CDN
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             console.log("Supabase client created successfully."); // Log de depuração: Cliente Supabase criado com sucesso
         } catch (e) {
             console.error("Error creating Supabase client:", e); // Log de depuração: Erro ao criar cliente Supabase
