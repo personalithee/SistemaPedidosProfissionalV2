@@ -651,8 +651,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     formPedido.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const clienteId = parseInt(clientePedidoSelect.value);
-        if (!clienteId || servicosNoPedidoAtual.length === 0) return alert('Selecione um cliente e adicione pelo menos um serviço.');
+        // CORREÇÃO: clienteId agora é uma string (UUID)
+        const clienteId = clientePedidoSelect.value; 
+        
+        if (!clienteId || servicosNoPedidoAtual.length === 0) {
+            alert('Selecione um cliente e adicione pelo menos um serviço.');
+            console.log('Validação de pedido falhou: cliente ou serviços ausentes.');
+            return;
+        }
         
         const btn = document.getElementById('btn-add-pedido');
         btn.disabled = true;
@@ -673,6 +679,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        console.log('Dados do pedido a serem inseridos:');
+        console.log('cliente_id:', clienteId);
+        console.log('servicos:', servicosNoPedidoAtual);
+        console.log('desconto:', desconto);
+        console.log('total_original:', totalOriginal);
+        console.log('total_final:', totalFinal);
+        console.log('user_id:', session.user.id);
+        console.log('company_id:', currentUserCompanyId);
+
         const { error } = await supabaseClient.from('pedidos').insert([{
             cliente_id: clienteId,
             servicos: servicosNoPedidoAtual,
@@ -685,7 +700,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (error) {
             showAlertError(error, 'Erro ao criar pedido. Verifique o console para mais detalhes.');
+            console.error('Erro detalhado na inserção do pedido:', error); // Log detalhado do erro
         } else {
+            console.log('Pedido criado com sucesso!');
             formPedido.reset();
             servicosNoPedidoAtual = [];
             document.getElementById('pedido-servicos-selecionados').innerHTML = '';
