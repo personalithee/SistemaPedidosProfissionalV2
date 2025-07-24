@@ -1,4 +1,4 @@
-
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -43,7 +43,7 @@
         h2 { border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 20px; }
         form { background-color: var(--secondary-color); padding: 20px; border-radius: 8px; margin-bottom: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
         .form-group { display: flex; flex-direction: column; }
-        input, select, button { padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); font-size: 14px; }
+        input, select, button, textarea { padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); font-size: 14px; } /* Adicionado textarea aqui */
         button { cursor: pointer; background-color: var(--primary-color); color: white; border: none; transition: background-color 0.3s; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
         button.add-btn { background-color: var(--success-color); }
@@ -117,6 +117,8 @@
             <form id="form-servico">
                 <div class="form-group"><label for="nome-servico">Nome do Serviço</label><input type="text" id="nome-servico" required></div>
                 <div class="form-group"><label for="valor-servico">Valor (R$)</label><input type="number" id="valor-servico" step="0.01" min="0" required></div>
+                <!-- Novo campo de Descrição para Serviços -->
+                <div class="form-group" style="grid-column: 1 / -1;"><label for="descricao-servico">Descrição</label><textarea id="descricao-servico" rows="3"></textarea></div>
                 <button type="submit" id="btn-add-servico" style="grid-column: 1 / -1;">Adicionar Serviço</button>
             </form>
             <h3>Serviços Cadastrados</h3>
@@ -129,6 +131,10 @@
                 <div class="form-group"><label for="nome-cliente">Nome do Cliente</label><input type="text" id="nome-cliente" required></div>
                 <div class="form-group"><label for="email-cliente">Email</label><input type="email" id="email-cliente"></div>
                 <div class="form-group"><label for="telefone-cliente">Telefone</label><input type="tel" id="telefone-cliente"></div>
+                <!-- Novos campos para Clientes -->
+                <div class="form-group"><label for="endereco-cliente">Endereço</label><input type="text" id="endereco-cliente"></div>
+                <div class="form-group"><label for="cnpj-cpf-cliente">CNPJ/CPF</label><input type="text" id="cnpj-cpf-cliente"></div>
+                <div class="form-group"><label for="responsavel-cliente">Responsável</label><input type="text" id="responsavel-cliente"></div>
                 <button type="submit" id="btn-add-cliente" style="grid-column: 1 / -1;">Adicionar Cliente</button>
             </form>
             <h3>Clientes Cadastrados</h3>
@@ -318,26 +324,39 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.tagName !== 'BUTTON') return;
         const tabId = e.target.dataset.tab;
 
+        console.log(`[handleNavClick] Botão clicado: ${tabId}`); // Log de navegação
+
         // Controle de acesso baseado na role
         // Seções de "Serviços", "Clientes" e "Relatório" são para admins
         if (currentUserRole === 'user') {
             if (tabId === 'servicos' || tabId === 'clientes' || tabId === 'relatorio' || tabId === 'empresas' || tabId === 'usuarios') {
                 alert('Você não tem permissão para acessar esta seção.');
+                console.warn(`[handleNavClick] Acesso negado para usuário comum na aba: ${tabId}`);
                 return;
             }
         }
 
         navButtons.forEach(btn => btn.classList.remove('active'));
         e.target.classList.add('active');
-        tabContents.forEach(content => content.classList.toggle('active', content.id === `${tabId}-tab`));
+        tabContents.forEach(content => {
+            const isActive = content.id === `${tabId}-tab`;
+            content.classList.toggle('active', isActive);
+            console.log(`[showSection] Exibindo ${content.id}: ${isActive ? 'block' : 'none'}`); // Log de exibição de seção
+        });
         
         // Renderiza o conteúdo da aba selecionada
         if (tabId === 'relatorio') renderRelatorio();
         else if (tabId === 'servicos') renderServicos();
         else if (tabId === 'clientes') renderClientes();
         else if (tabId === 'pedidos') renderPedidos();
-        else if (tabId === 'empresas') renderEmpresas(); // Novo
-        else if (tabId === 'usuarios') renderUsuarios(); // Novo
+        else if (tabId === 'empresas') {
+            console.log('[handleNavClick] Chamando renderEmpresas para a aba Empresas.'); // Log específico
+            renderEmpresas(); 
+        }
+        else if (tabId === 'usuarios') {
+            console.log('[handleNavClick] Chamando renderUsuarios para a aba Usuários.'); // Log específico
+            renderUsuarios(); 
+        }
     }
 
     // Função de Logout
@@ -423,7 +442,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function renderServicos() {
         showLoading(listaServicos);
         // Filtra por company_id se não for admin
-        let query = supabaseClient.from('servicos').select('*').order('nome', { ascending: true });
+        // Explicitamente seleciona as colunas para evitar problemas com o parâmetro 'columns'
+        let query = supabaseClient.from('servicos').select('id, nome, valor, descricao, company_id').order('nome', { ascending: true });
         if (currentUserRole !== 'admin' && currentUserCompanyId) {
             query = query.eq('company_id', currentUserCompanyId);
         }
@@ -437,7 +457,11 @@ document.addEventListener('DOMContentLoaded', () => {
         servicosCache = data;
         listaServicos.innerHTML = data.map(servico => `
             <div class="item-card">
-                <div><strong>${servico.nome}</strong><br><span>${formatCurrency(servico.valor)}</span></div>
+                <div>
+                    <strong>${servico.nome}</strong><br>
+                    <span>${formatCurrency(servico.valor)}</span>
+                    ${servico.descricao ? `<br><small>${servico.descricao}</small>` : ''}
+                </div>
                 <button class="delete-btn" data-id="${servico.id}">Excluir</button>
             </div>
         `).join('');
@@ -450,11 +474,24 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.disabled = true;
         btn.textContent = 'Adicionando...';
 
+        const nomeServico = document.getElementById('nome-servico').value;
+        let valorServico = parseFloat(document.getElementById('valor-servico').value);
+        const descricaoServico = document.getElementById('descricao-servico').value; // Captura a descrição
+
+        // Adicionar validação para garantir que valorServico é um número válido
+        if (isNaN(valorServico)) {
+            showAlertError(null, 'O valor do serviço deve ser um número válido.');
+            btn.disabled = false;
+            btn.textContent = 'Adicionar Serviço';
+            return; // Interrompe a função se o valor não for válido
+        }
+
         // Garante que o company_id seja incluído
         const { error } = await supabaseClient.from('servicos').insert([{ 
-            nome: document.getElementById('nome-servico').value, 
-            valor: parseFloat(document.getElementById('valor-servico').value),
-            company_id: currentUserCompanyId // Adiciona o company_id
+            nome: nomeServico, 
+            valor: valorServico, 
+            descricao: descricaoServico, // Inclui a descrição
+            company_id: currentUserCompanyId 
         }]);
         if (error) showAlertError(error, 'Erro ao adicionar serviço.');
         else {
@@ -495,7 +532,13 @@ document.addEventListener('DOMContentLoaded', () => {
         clientesCache = data;
         listaClientes.innerHTML = data.map(cliente => `
             <div class="item-card">
-                <div><strong>${cliente.nome}</strong><br><small>${cliente.email || ''} | ${cliente.telefone || ''}</small></div>
+                <div>
+                    <strong>${cliente.nome}</strong><br>
+                    <small>${cliente.email || 'N/A'} | ${cliente.telefone || 'N/A'}</small>
+                    ${cliente.endereco ? `<br><small>Endereço: ${cliente.endereco}</small>` : ''}
+                    ${cliente.cnpj_cpf ? `<br><small>CNPJ/CPF: ${cliente.cnpj_cpf}</small>` : ''}
+                    ${cliente.responsavel ? `<br><small>Responsável: ${cliente.responsavel}</small>` : ''}
+                </div>
                 <button class="delete-btn" data-id="${cliente.id}">Excluir</button>
             </div>
         `).join('');
@@ -507,12 +550,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = document.getElementById('btn-add-cliente');
         btn.disabled = true;
         btn.textContent = 'Adicionando...';
+        // Captura os novos campos
+        const nomeCliente = document.getElementById('nome-cliente').value;
+        const emailCliente = document.getElementById('email-cliente').value;
+        const telefoneCliente = document.getElementById('telefone-cliente').value;
+        const enderecoCliente = document.getElementById('endereco-cliente').value;
+        const cnpjCpfCliente = document.getElementById('cnpj-cpf-cliente').value;
+        const responsavelCliente = document.getElementById('responsavel-cliente').value;
+
         // Garante que o company_id seja incluído
         const { error } = await supabaseClient.from('clientes').insert([{ 
-            nome: document.getElementById('nome-cliente').value, 
-            email: document.getElementById('email-cliente').value, 
-            telefone: document.getElementById('telefone-cliente').value,
-            company_id: currentUserCompanyId // Adiciona o company_id
+            nome: nomeCliente, 
+            email: emailCliente, 
+            telefone: telefoneCliente,
+            endereco: enderecoCliente, // Inclui o endereço
+            cnpj_cpf: cnpjCpfCliente, // Inclui o CNPJ/CPF
+            responsavel: responsavelCliente, // Inclui o responsável
+            company_id: currentUserCompanyId 
         }]);
         if (error) showAlertError(error, 'Erro ao adicionar cliente.');
         else {
@@ -550,17 +604,41 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     document.getElementById('add-servico-pedido-btn').addEventListener('click', () => {
-        const servicoId = parseInt(servicoPedidoSelect.value);
+        const servicoId = servicoPedidoSelect.value; // Removido parseInt, agora é string (UUID)
         const quantidade = parseInt(document.getElementById('quantidade-servico').value);
-        if (!servicoId || !quantidade) return alert('Selecione um serviço e a quantidade.');
-        const servico = servicosCache.find(s => s.id === servicoId);
+        
+        console.log('Tentando adicionar serviço ao pedido:');
+        console.log('ID do serviço selecionado:', servicoId);
+        console.log('Quantidade selecionada:', quantidade);
+        console.log('servicosCache atual:', servicosCache);
+
+        if (!servicoId || isNaN(quantidade) || quantidade <= 0) { 
+            alert('Selecione um serviço e insira uma quantidade válida.');
+            console.log('Validação falhou: ID do serviço ou quantidade inválida.');
+            return;
+        }
+        // Garante que a comparação seja entre strings (UUIDs)
+        const servico = servicosCache.find(s => String(s.id) === String(servicoId)); 
         
         if (servico) {
-            servicosNoPedidoAtual.push({ ...servico, quantidade });
+            console.log('Serviço encontrado no cache:', servico);
+            // Verifica se o serviço já está na lista e atualiza a quantidade
+            const existingServiceIndex = servicosNoPedidoAtual.findIndex(item => String(item.id) === String(servicoId));
+            if (existingServiceIndex > -1) {
+                servicosNoPedidoAtual[existingServiceIndex].quantidade += quantidade;
+                console.log('Quantidade do serviço existente atualizada:', servicosNoPedidoAtual[existingServiceIndex]);
+            } else {
+                servicosNoPedidoAtual.push({ ...servico, quantidade });
+                console.log('Novo serviço adicionado à lista do pedido:', servicosNoPedidoAtual[servicosNoPedidoAtual.length - 1]);
+            }
+            
             renderServicosDoPedido();
             updatePedidoTotal();
             servicoPedidoSelect.value = '';
             document.getElementById('quantidade-servico').value = '1';
+        } else {
+            alert('Serviço não encontrado no cache. Tente recarregar a página.');
+            console.error('Serviço não encontrado no cache para o ID:', servicoId);
         }
     });
 
@@ -586,8 +664,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     formPedido.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const clienteId = parseInt(clientePedidoSelect.value);
-        if (!clienteId || servicosNoPedidoAtual.length === 0) return alert('Selecione um cliente e adicione pelo menos um serviço.');
+        // CORREÇÃO: clienteId agora é uma string (UUID)
+        const clienteId = clientePedidoSelect.value; 
+        
+        if (!clienteId || servicosNoPedidoAtual.length === 0) {
+            alert('Selecione um cliente e adicione pelo menos um serviço.');
+            console.log('Validação de pedido falhou: cliente ou serviços ausentes.');
+            return;
+        }
         
         const btn = document.getElementById('btn-add-pedido');
         btn.disabled = true;
@@ -608,10 +692,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        console.log('Dados do pedido a serem inseridos:');
+        console.log('cliente_id:', clienteId);
+        console.log('servicos:', servicosNoPedidoAtual);
+        console.log('desconto:', desconto); // Log do valor de desconto
+        console.log('total_original:', totalOriginal);
+        console.log('total_final:', totalFinal);
+        console.log('user_id:', session.user.id);
+        console.log('company_id:', currentUserCompanyId);
+
         const { error } = await supabaseClient.from('pedidos').insert([{
             cliente_id: clienteId,
             servicos: servicosNoPedidoAtual,
-            desconto,
+            desconto, // Certifique-se de que esta coluna existe e é do tipo correto (NUMERIC)
             total_original: totalOriginal,
             total_final: totalFinal,
             user_id: session.user.id, 
@@ -620,7 +713,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (error) {
             showAlertError(error, 'Erro ao criar pedido. Verifique o console para mais detalhes.');
+            console.error('Erro detalhado na inserção do pedido:', error); // Log detalhado do erro
         } else {
+            console.log('Pedido criado com sucesso!');
             formPedido.reset();
             servicosNoPedidoAtual = [];
             document.getElementById('pedido-servicos-selecionados').innerHTML = '';
@@ -950,8 +1045,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let servicosHtml = pedido.servicos.map(s => `
             <li>
                 <span>${s.quantidade}x ${s.nome}</span>
-                <span>${formatCurrency(s.valor)} cada</span>
-                <span>${formatCurrency(s.valor * s.quantidade)}</span>
+                <span>${s.valor.toFixed(2)} cada</span>
+                <span>${(s.valor * s.quantidade).toFixed(2)}</span>
             </li>
         `).join('');
 
@@ -1019,18 +1114,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const empresaUsuarioSelect = document.getElementById('empresa-usuario'); // Select de empresa na criação de usuário
 
     async function renderEmpresas() {
+        console.log('[renderEmpresas] Função chamada.'); // Log de entrada
         if (currentUserRole !== 'admin') {
             listaEmpresas.innerHTML = '<p>Você não tem permissão para visualizar empresas.</p>';
+            console.log('[renderEmpresas] Usuário não é admin, acesso negado.'); // Log de permissão
             return;
         }
         showLoading(listaEmpresas);
+        console.log('[renderEmpresas] Tentando carregar empresas do Supabase...'); // Log de carregamento
         const { data, error } = await supabaseClient.from('companies').select('*').order('name', { ascending: true });
         if (error) {
             showAlertError(error, 'Não foi possível carregar as empresas.');
             listaEmpresas.innerHTML = '';
+            console.error('[renderEmpresas] Erro ao carregar empresas:', error); // Log de erro
             return;
         }
         empresasCache = data; // Atualiza o cache de empresas
+        console.log('[renderEmpresas] Empresas carregadas:', data); // Log de dados carregados
         listaEmpresas.innerHTML = data.map(empresa => `
             <div class="item-card">
                 <div><strong>${empresa.name}</strong><br><small>ID: ${empresa.id}</small></div>
@@ -1085,17 +1185,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const listaUsuarios = document.getElementById('lista-usuarios');
 
     async function renderUsuarios() {
+        console.log('[renderUsuarios] Função chamada.'); // Log de entrada
         if (currentUserRole !== 'admin') {
             listaUsuarios.innerHTML = '<p>Você não tem permissão para visualizar usuários.</p>';
+            console.log('[renderUsuarios] Usuário não é admin, acesso negado.'); // Log de permissão
             return;
         }
         showLoading(listaUsuarios);
+        console.log('[renderUsuarios] Tentando carregar usuários do Supabase...'); // Log de carregamento
         const { data, error } = await supabaseClient.from('profiles').select('*, companies(name)').order('email', { ascending: true });
         if (error) {
             showAlertError(error, 'Não foi possível carregar os usuários.');
             listaUsuarios.innerHTML = '';
+            console.error('[renderUsuarios] Erro ao carregar usuários:', error); // Log de erro
             return;
         }
+        console.log('[renderUsuarios] Usuários carregados:', data); // Log de dados carregados
         listaUsuarios.innerHTML = data.map(usuario => `
             <div class="item-card">
                 <div>
