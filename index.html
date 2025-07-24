@@ -13,7 +13,7 @@
     <style>
         /* ESTILOS GERAIS */
         :root { --primary-color: #4a90e2; --secondary-color: #f5f7fa; --font-color: #333; --border-color: #ddd; --success-color: #28a745; --danger-color: #dc3545; --warning-color: #ffc107; --card-bg: #fff; --shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        body { font-family: -apple-system, BlinkMacMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; background-color: var(--secondary-color); color: var(--font-color); margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; background-color: var(--secondary-color); color: var(--font-color); margin: 0; padding: 0; }
         h1, h2, h3 { color: var(--primary-color); }
 
         /* ESTILOS DA TELA DE LOGIN */
@@ -107,7 +107,8 @@
             <button class="nav-btn" data-tab="clientes">Clientes</button>
             <button class="nav-btn" data-tab="pedidos">Pedidos</button>
             <button class="nav-btn" data-tab="relatorio">Relatório</button>
-            <!-- Botões de Empresas e Usuários removidos -->
+            <button class="nav-btn admin-feature" data-tab="empresas" style="display: none;">Empresas</button>
+            <button class="nav-btn admin-feature" data-tab="usuarios" style="display: none;">Usuários</button>
             <button id="logout-btn-nav">Sair</button>
         </nav>
 
@@ -180,8 +181,41 @@
             </div>
         </div>
 
-        <!-- Seções de Gerenciamento de Empresas e Usuários removidas -->
-        
+        <!-- Seção de Gerenciamento de Empresas (APENAS ADMIN) -->
+        <div id="empresas-tab" class="tab-content admin-only" style="display: none;">
+            <h2>Gerenciar Empresas</h2>
+            <form id="form-empresa">
+                <div class="form-group"><label for="nome-empresa">Nome da Empresa</label><input type="text" id="nome-empresa" required></div>
+                <button type="submit" id="btn-add-empresa" style="grid-column: 1 / -1;">Adicionar Empresa</button>
+            </form>
+            <h3>Empresas Cadastradas</h3>
+            <div id="lista-empresas" class="item-list"></div>
+        </div>
+
+        <!-- Seção de Gerenciamento de Usuários (APENAS ADMIN) -->
+        <div id="usuarios-tab" class="tab-content admin-only" style="display: none;">
+            <h2>Gerenciar Usuários</h2>
+            <form id="form-usuario">
+                <div class="form-group"><label for="email-usuario">Email</label><input type="email" id="email-usuario" required></div>
+                <div class="form-group"><label for="senha-usuario">Senha (deixe em branco para não alterar)</label><input type="password" id="senha-usuario"></div>
+                <div class="form-group"><label for="nome-completo-usuario">Nome Completo</label><input type="text" id="nome-completo-usuario"></div>
+                <div class="form-group"><label for="role-usuario">Permissão</label>
+                    <select id="role-usuario" required>
+                        <option value="user">Usuário</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <div class="form-group"><label for="empresa-usuario">Empresa</label>
+                    <select id="empresa-usuario" required>
+                        <option value="">Selecione uma empresa</option>
+                    </select>
+                </div>
+                <button type="submit" id="btn-add-usuario" style="grid-column: 1 / -1;">Adicionar Usuário</button>
+            </form>
+            <h3>Usuários Cadastrados</h3>
+            <div id="lista-usuarios" class="item-list"></div>
+        </div>
+
     </div>
     <div class="modal-overlay" id="comprovante-modal">
         <div class="modal-content">
@@ -206,7 +240,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================================
     // =================================================================================
     
-    // CORREÇÃO: Acessa o objeto global 'supabase' (minúsculo) exposto pelo CDN
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
     const { jsPDF } = window.jspdf;
@@ -214,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let servicosNoPedidoAtual = [];
     let servicosCache = [];
     let clientesCache = [];
-    // let empresasCache = []; // Removido: Cache para empresas não é mais necessário na UI
+    let empresasCache = []; // Cache para empresas
     let currentUserRole = 'guest'; // Padrão inicial antes da verificação
     let currentUserCompanyId = null; // ID da empresa do usuário logado
 
@@ -293,9 +326,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(`[handleNavClick] Botão clicado: ${tabId}`); // Log de navegação
 
         // Controle de acesso baseado na role
-        // Seções de "Serviços", "Clientes" e "Relatório" são para admins
+        // Usuários com role 'user' só podem acessar 'servicos', 'clientes', 'pedidos', 'relatorio'
         if (currentUserRole === 'user') {
-            if (tabId === 'servicos' || tabId === 'clientes' || tabId === 'relatorio') { // Removido 'empresas' e 'usuarios'
+            if (tabId === 'empresas' || tabId === 'usuarios') {
                 alert('Você não tem permissão para acessar esta seção.');
                 console.warn(`[handleNavClick] Acesso negado para usuário comum na aba: ${tabId}`);
                 return;
@@ -315,7 +348,14 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (tabId === 'servicos') renderServicos();
         else if (tabId === 'clientes') renderClientes();
         else if (tabId === 'pedidos') renderPedidos();
-        // As chamadas para renderEmpresas e renderUsuarios foram removidas
+        else if (tabId === 'empresas') {
+            console.log('[handleNavClick] Chamando renderEmpresas para a aba Empresas.'); // Log específico
+            renderEmpresas(); 
+        }
+        else if (tabId === 'usuarios') {
+            console.log('[handleNavClick] Chamando renderUsuarios para a aba Usuários.'); // Log específico
+            renderUsuarios(); 
+        }
     }
 
     // Função de Logout
@@ -369,16 +409,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (tabId === 'servicos') renderServicos();
                 else if (tabId === 'clientes') renderClientes();
                 else if (tabId === 'pedidos') renderPedidos();
-                // As chamadas para renderEmpresas e renderUsuarios foram removidas
+                else if (tabId === 'empresas') renderEmpresas();
+                else if (tabId === 'usuarios') renderUsuarios();
             } else {
                 // Se nenhuma aba estiver ativa (o que não deve acontecer), renderiza serviços
                 renderServicos();
             }
 
             // Exibir/ocultar botões de administração com base na role
-            // Como as abas de admin foram removidas, este trecho pode ser simplificado
             document.querySelectorAll('.admin-feature').forEach(btn => {
-                btn.style.display = 'none'; // Sempre oculto, pois as abas não existem mais
+                if (currentUserRole === 'admin') {
+                    btn.style.display = 'block';
+                } else {
+                    btn.style.display = 'none';
+                }
             });
 
         } else {
@@ -396,11 +440,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function renderServicos() {
         showLoading(listaServicos);
-        // Filtra por company_id se não for admin
-        // Explicitamente seleciona as colunas para evitar problemas com o parâmetro 'columns'
         let query = supabaseClient.from('servicos').select('id, nome, valor, descricao, company_id').order('nome', { ascending: true });
-        if (currentUserRole !== 'admin' && currentUserCompanyId) {
-            query = query.eq('company_id', currentUserCompanyId);
+
+        // Se o usuário NÃO for admin, ele DEVE pertencer a uma empresa para ver dados.
+        if (currentUserRole !== 'admin') {
+            if (currentUserCompanyId) {
+                query = query.eq('company_id', currentUserCompanyId);
+            } else {
+                // Se usuário não é admin e não tem company_id, ele não deve ver dados.
+                listaServicos.innerHTML = '<p>Você não está associado a uma empresa. Por favor, entre em contato com o administrador para ter acesso aos serviços.</p>';
+                return; // Interrompe a função
+            }
         }
 
         const { data, error } = await query;
@@ -472,10 +522,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function renderClientes() {
         showLoading(listaClientes);
-        // Filtra por company_id se não for admin
         let query = supabaseClient.from('clientes').select('*').order('nome', { ascending: true });
-        if (currentUserRole !== 'admin' && currentUserCompanyId) {
-            query = query.eq('company_id', currentUserCompanyId);
+        
+        // Se o usuário NÃO for admin, ele DEVE pertencer a uma empresa para ver dados.
+        if (currentUserRole !== 'admin') {
+            if (currentUserCompanyId) {
+                query = query.eq('company_id', currentUserCompanyId);
+            } else {
+                listaClientes.innerHTML = '<p>Você não está associado a uma empresa. Por favor, entre em contato com o administrador para ter acesso aos clientes.</p>';
+                return;
+            }
         }
 
         const { data, error } = await query;
@@ -581,10 +637,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const existingServiceIndex = servicosNoPedidoAtual.findIndex(item => String(item.id) === String(servicoId));
             if (existingServiceIndex > -1) {
                 servicosNoPedidoAtual[existingServiceIndex].quantidade += quantidade;
-                console.log('Quantidade do serviço existente atualizada:', servicosNoPedidoAtual[existingServiceIndex]);
             } else {
                 servicosNoPedidoAtual.push({ ...servico, quantidade });
-                console.log('Novo serviço adicionado à lista do pedido:', servicosNoPedidoAtual[servicosNoPedidoAtual.length - 1]);
             }
             
             renderServicosDoPedido();
@@ -683,14 +737,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function renderPedidos() {
         showLoading(listaPedidos);
-        // Filtra por company_id se não for admin
         let query = supabaseClient
             .from('pedidos')
             .select('*, clientes(nome, email, telefone)') 
             .order('data_solicitacao', { ascending: false }); 
             
-        if (currentUserRole !== 'admin' && currentUserCompanyId) {
-            query = query.eq('company_id', currentUserCompanyId);
+        // Se o usuário NÃO for admin, ele DEVE pertencer a uma empresa para ver dados.
+        if (currentUserRole !== 'admin') {
+            if (currentUserCompanyId) {
+                query = query.eq('company_id', currentUserCompanyId);
+            } else {
+                listaPedidos.innerHTML = '<p>Você não está associado a uma empresa. Por favor, entre em contato com o administrador para ter acesso aos pedidos.</p>';
+                return;
+            }
         }
 
         const { data, error } = await query;
@@ -861,15 +920,21 @@ document.addEventListener('DOMContentLoaded', () => {
         trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
         const dataMinima = trintaDiasAtras.toISOString();
 
-        // Filtra por company_id se não for admin
         let query = supabaseClient
             .from('pedidos')
             .select('*, clientes(nome)')
             .gte('data_solicitacao', dataMinima)
             .order('data_solicitacao', { ascending: false });
 
-        if (currentUserRole !== 'admin' && currentUserCompanyId) {
-            query = query.eq('company_id', currentUserCompanyId);
+        // Se o usuário NÃO for admin, ele DEVE pertencer a uma empresa para ver dados.
+        if (currentUserRole !== 'admin') {
+            if (currentUserCompanyId) {
+                query = query.eq('company_id', currentUserCompanyId);
+            } else {
+                corpoTabelaRelatorio.innerHTML = '<tr><td colspan="7">Você não está associado a uma empresa. Por favor, entre em contato com o administrador para ter acesso ao relatório.</td></tr>';
+                listaResumoPendencias.innerHTML = '';
+                return;
+            }
         }
 
         const { data: pedidos, error } = await query;
@@ -1063,29 +1128,189 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- LÓGICA DE EMPRESAS (REMOVIDA) ---
-    // Funções e listeners relacionados a empresas foram removidos.
+    // --- LÓGICA DE EMPRESAS (ADMIN APENAS) ---
+    const formEmpresa = document.getElementById('form-empresa');
+    const listaEmpresas = document.getElementById('lista-empresas');
+    const empresaUsuarioSelect = document.getElementById('empresa-usuario'); // Select de empresa na criação de usuário
 
-    // --- LÓGICA DE USUÁRIOS (REMOVIDA) ---
-    // Funções e listeners relacionados a usuários foram removidos.
-
-
-    // --- Inicialização ---
-    document.getElementById('logout-btn-nav').addEventListener('click', async () => {
-        const { error } = await supabaseClient.auth.signOut();
+    async function renderEmpresas() {
+        console.log('[renderEmpresas] Função chamada.'); // Log de entrada
+        if (currentUserRole !== 'admin') {
+            listaEmpresas.innerHTML = '<p>Você não tem permissão para visualizar empresas.</p>';
+            console.log('[renderEmpresas] Usuário não é admin, acesso negado.'); // Log de permissão
+            return;
+        }
+        showLoading(listaEmpresas);
+        console.log('[renderEmpresas] Tentando carregar empresas do Supabase...'); // Log de carregamento
+        const { data, error } = await supabaseClient.from('companies').select('*').order('name', { ascending: true });
         if (error) {
-            showAlertError(error, 'Erro ao fazer logout.');
+            showAlertError(error, 'Não foi possível carregar as empresas.');
+            listaEmpresas.innerHTML = '';
+            console.error('[renderEmpresas] Erro ao carregar empresas:', error); // Log de erro
+            return;
+        }
+        empresasCache = data; // Atualiza o cache de empresas
+        console.log('[renderEmpresas] Empresas carregadas:', data); // Log de dados carregados
+        listaEmpresas.innerHTML = data.map(empresa => `
+            <div class="item-card">
+                <div><strong>${empresa.name}</strong><br><small>ID: ${empresa.id}</small></div>
+                <button class="delete-btn" data-id="${empresa.id}">Excluir</button>
+            </div>
+        `).join('');
+        updateEmpresaSelectOptions(); // Atualiza o select de empresas para usuários
+    }
+
+    formEmpresa.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (currentUserRole !== 'admin') { alert('Permissão negada.'); return; }
+
+        const btn = document.getElementById('btn-add-empresa');
+        btn.disabled = true;
+        btn.textContent = 'Adicionando...';
+
+        const nomeEmpresa = document.getElementById('nome-empresa').value;
+        
+        // Chamada RPC para criar a empresa e associar o admin
+        const { data, error } = await supabaseClient.rpc('create_new_company', { company_name: nomeEmpresa });
+
+        if (error) {
+            showAlertError(error, 'Erro ao adicionar empresa.');
         } else {
-            currentUserRole = 'guest'; // Resetar a role
-            currentUserCompanyId = null; // Resetar company_id
-            loginScreen.style.display = 'flex';
-            mainSystem.style.display = 'none';
-            showMessage('Você foi desconectado.', 'success');
+            formEmpresa.reset();
+            alert(`Empresa "${nomeEmpresa}" criada com sucesso! ID: ${data.company_id}`);
+            await renderEmpresas();
+        }
+        btn.disabled = false;
+        btn.textContent = 'Adicionar Empresa';
+    });
+
+    listaEmpresas.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('delete-btn') && currentUserRole === 'admin') {
+            if (confirm('Tem certeza que deseja excluir esta empresa? Isso removerá TODOS os dados associados a ela (usuários, clientes, serviços, pedidos)! Esta ação é irreversível!')) {
+                const id = e.target.dataset.id;
+                const { error } = await supabaseClient.from('companies').delete().eq('id', id);
+                if (error) showAlertError(error, 'Erro ao excluir empresa.');
+                else await renderEmpresas();
+            }
         }
     });
 
-    // Chame initSystem ao carregar a página para verificar o status de login
-    initSystem();
+    function updateEmpresaSelectOptions() {
+        empresaUsuarioSelect.innerHTML = '<option value="">Selecione uma empresa</option>' + empresasCache.map(empresa => `<option value="${empresa.id}">${empresa.name}</option>`).join('');
+    }
+
+
+    // --- LÓGICA DE USUÁRIOS (ADMIN APENAS) ---
+    const formUsuario = document.getElementById('form-usuario');
+    const listaUsuarios = document.getElementById('lista-usuarios');
+
+    async function renderUsuarios() {
+        console.log('[renderUsuarios] Função chamada.'); // Log de entrada
+        if (currentUserRole !== 'admin') {
+            listaUsuarios.innerHTML = '<p>Você não tem permissão para visualizar usuários.</p>';
+            console.log('[renderUsuarios] Usuário não é admin, acesso negado.'); // Log de permissão
+            return;
+        }
+        showLoading(listaUsuarios);
+        console.log('[renderUsuarios] Tentando carregar usuários do Supabase...'); // Log de carregamento
+        const { data, error } = await supabaseClient.from('profiles').select('*, companies(name)').order('email', { ascending: true });
+        if (error) {
+            showAlertError(error, 'Não foi possível carregar os usuários.');
+            listaUsuarios.innerHTML = '';
+            console.error('[renderUsuarios] Erro ao carregar usuários:', error); // Log de erro
+            return;
+        }
+        console.log('[renderUsuarios] Usuários carregados:', data); // Log de dados carregados
+        listaUsuarios.innerHTML = data.map(usuario => `
+            <div class="item-card">
+                <div>
+                    <strong>${usuario.email}</strong><br>
+                    <small>Nome: ${usuario.full_name || 'N/A'}</small><br>
+                    <small>Permissão: ${usuario.role}</small><br>
+                    <small>Empresa: ${usuario.companies ? usuario.companies.name : 'N/A'}</small>
+                </div>
+                <button class="delete-btn" data-id="${usuario.id}">Excluir</button>
+            </div>
+        `).join('');
+        // Recarrega as empresas para o select de usuário
+        await renderEmpresas(); 
+    }
+
+    formUsuario.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (currentUserRole !== 'admin') { alert('Permissão negada.'); return; }
+
+        const btn = document.getElementById('btn-add-usuario');
+        btn.disabled = true;
+        btn.textContent = 'Processando...';
+
+        const email = document.getElementById('email-usuario').value;
+        const password = document.getElementById('senha-usuario').value;
+        const fullName = document.getElementById('nome-completo-usuario').value;
+        const role = document.getElementById('role-usuario').value;
+        const companyId = document.getElementById('empresa-usuario').value;
+
+        if (!companyId) {
+            alert('Por favor, selecione uma empresa para o novo usuário.');
+            btn.disabled = false;
+            btn.textContent = 'Adicionar Usuário';
+            return;
+        }
+
+        try {
+            // Primeiro, cria o usuário na autenticação do Supabase
+            const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
+                email: email,
+                password: password,
+                email_confirm: true // Opcional: envia email de confirmação
+            });
+
+            if (authError) {
+                showAlertError(authError, 'Erro ao criar usuário na autenticação.');
+                btn.disabled = false;
+                btn.textContent = 'Adicionar Usuário';
+                return;
+            }
+
+            const userId = authData.user.id;
+
+            // Em seguida, cria o perfil na tabela 'profiles' usando a função RPC
+            const { error: rpcError } = await supabaseClient.rpc('create_profile_for_user', {
+                user_id: userId,
+                user_email: email,
+                user_role: role,
+                user_company_id: companyId,
+                full_name: fullName
+            });
+
+            if (rpcError) {
+                showAlertError(rpcError, 'Erro ao criar perfil do usuário. O usuário na autenticação será removido.');
+                // Se o perfil falhar, tente reverter a criação do usuário na autenticação
+                await supabaseClient.auth.admin.deleteUser(userId);
+                console.error('Usuário de autenticação revertido devido a falha na criação do perfil.');
+            } else {
+                alert('Usuário e perfil criados com sucesso!');
+                formUsuario.reset();
+                await renderUsuarios();
+            }
+        } catch (err) {
+            showAlertError(err, 'Ocorreu um erro inesperado ao criar o usuário.');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Adicionar Usuário';
+        }
+    });
+
+    listaUsuarios.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('delete-btn') && currentUserRole === 'admin') {
+            if (confirm('Tem certeza que deseja excluir este usuário? Isso removerá o acesso e o perfil dele. Esta ação é irreversível!')) {
+                const id = e.target.dataset.id;
+                const { error } = await supabaseClient.auth.admin.deleteUser(id); // Exclui da autenticação, o trigger deve cuidar do perfil
+                if (error) showAlertError(error, 'Erro ao excluir usuário.');
+                else await renderUsuarios();
+            }
+        }
+    });
 
 
 }); // Fim do DOMContentLoaded
