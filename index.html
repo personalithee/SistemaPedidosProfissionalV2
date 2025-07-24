@@ -191,11 +191,8 @@
                 <div class="form-group"><label for="nome-empresa">Nome da Empresa</label><input type="text" id="nome-empresa" required></div>
                 <button type="submit" id="btn-add-empresa" style="grid-column: 1 / -1;">Adicionar Empresa</button>
             </form>
-            <!-- A lista de empresas será oculta, mas a função renderEmpresas ainda será chamada para popular o select de usuários -->
             <h3>Empresas Cadastradas</h3>
-            <div id="lista-empresas" class="item-list">
-                <p>A lista de empresas não é exibida aqui. As empresas cadastradas aparecerão no campo de seleção ao criar/editar usuários.</p>
-            </div>
+            <div id="lista-empresas" class="item-list"></div>
 
             <h2 style="margin-top: 40px;">Gerenciar Usuários</h2>
             <form id="form-usuario">
@@ -236,1106 +233,1128 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-// Função de polling para esperar que o Supabase esteja definido
-function waitForSupabase(callback) {
-    // CORREÇÃO: Verifica window.Supabase (com 'S' maiúsculo)
-    if (typeof window.Supabase !== 'undefined') { 
-        callback();
-    } else {
-        setTimeout(() => waitForSupabase(callback), 100); // Tenta novamente em 100ms
-    }
-}
+    console.log("Script block started."); // Log de depuração: Início do bloco de script
 
-// Toda a sua lógica JavaScript será executada APENAS quando Supabase estiver pronto
-waitForSupabase(() => {
-    // =================================================================================
-    // ================== CONFIGURAÇÃO DO SUPABASE (SUAS CHAVES REAIS) =================
-    // =================================================================================
-    const SUPABASE_URL = 'https://lwocvzymhkwvjlsarflf.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3b2N2enltaGt3dmpsc2FyZmxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxOTM1OTUsImV4cCI6MjA2ODc2OTU5NX0.ucW4LCE7bE_vKlHcGSP55By-Z5MVPCGv6vRaClr1lv4';
-    // =================================================================================
-    // =================================================================================
-    
-    // CORREÇÃO: Acessa o objeto global 'Supabase' (maiúsculo) exposto pelo CDN
-    const supabaseClient = window.Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
-    const { jsPDF } = window.jspdf;
-
-    let servicosNoPedidoAtual = [];
-    let servicosCache = [];
-    let clientesCache = [];
-    let empresasCache = []; // Cache para empresas
-    let currentUserRole = 'guest'; // Padrão inicial antes da verificação
-    let currentUserCompanyId = null; // ID da empresa do usuário logado
-
-    // --- VARIÁVEIS E ELEMENTOS DA TELA DE LOGIN ---
-    const loginScreen = document.getElementById('login-screen');
-    const mainSystem = document.getElementById('main-system');
-    const loginForm = document.getElementById('login-form');
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-    const loginBtn = document.getElementById('login-btn');
-    const messageDiv = document.getElementById('message');
-
-    // --- FUNÇÕES AUXILIARES ---
-    const formatCurrency = (value) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'N/A';
-    const showLoading = (listElement) => listElement.innerHTML = '<p class="loading">Carregando dados...</p>';
-    const showAlertError = (error, message = 'Ocorreu um erro ao comunicar com o banco de dados.') => {
-        console.error('Erro Supabase:', error);
-        alert(`${message}\nVerifique o console para mais detalhes.`);
-    };
-    function showMessage(text, type) {
-        messageDiv.textContent = text;
-        messageDiv.className = `message ${type}`;
-        messageDiv.style.display = 'block';
+    // Função de polling para esperar que o Supabase esteja definido
+    function waitForSupabase(callback) {
+        console.log("waitForSupabase called."); // Log de depuração: Chamada da função
+        if (typeof window.Supabase !== 'undefined') { 
+            console.log("Supabase found."); // Log de depuração: Supabase encontrado
+            callback();
+        } else {
+            console.log("Supabase not yet found, retrying..."); // Log de depuração: Supabase não encontrado, tentando novamente
+            setTimeout(() => waitForSupabase(callback), 100); // Tenta novamente em 100ms
+        }
     }
 
-    // --- LÓGICA DO FORMULÁRIO DE LOGIN ---
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        loginBtn.disabled = true;
-        loginBtn.textContent = 'Entrando...';
-        messageDiv.style.display = 'none';
+    // Toda a sua lógica JavaScript será executada APENAS quando Supabase estiver pronto
+    waitForSupabase(() => {
+        console.log("Supabase ready, initializing client."); // Log de depuração: Supabase pronto, inicializando cliente
 
-        const email = emailInput.value;
-        const password = passwordInput.value;
-
+        // =================================================================================
+        // ================== CONFIGURAÇÃO DO SUPABASE (SUAS CHAVES REAIS) =================
+        // =================================================================================
+        const SUPABASE_URL = 'https://lwocvzymhkwvjlsarflf.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3b2N2enltaGt3dmpsc2FyZmxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxOTM1OTUsImV4cCI6MjA2ODc2OTU5NX0.ucW4LCE7bE_vKlHcGSP55By-Z5MVPCGv6vRaClr1lv4';
+        // =================================================================================
+        // =================================================================================
+        
+        let supabaseClient;
         try {
-            const { data, error } = await supabaseClient.auth.signInWithPassword({
-                email: email,
-                password: password,
-            });
+            // CORREÇÃO: Acessa o objeto global 'Supabase' (maiúsculo) exposto pelo CDN
+            supabaseClient = window.Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log("Supabase client created successfully."); // Log de depuração: Cliente Supabase criado com sucesso
+        } catch (e) {
+            console.error("Error creating Supabase client:", e); // Log de depuração: Erro ao criar cliente Supabase
+            alert("Erro fatal: Não foi possível inicializar o cliente Supabase. Verifique o console para mais detalhes.");
+            return; // Interrompe a execução se o cliente falhar ao inicializar
+        }
+        
+        const { jsPDF } = window.jspdf;
 
-            if (error) {
-                if (error.message.includes('Invalid login credentials')) {
-                    showMessage('Credenciais de login inválidas. Verifique seu e-mail e senha.', 'error');
+        let servicosNoPedidoAtual = [];
+        let servicosCache = [];
+        let clientesCache = [];
+        let empresasCache = []; // Cache para empresas
+        let currentUserRole = 'guest'; // Padrão inicial antes da verificação
+        let currentUserCompanyId = null; // ID da empresa do usuário logado
+
+        // --- VARIÁVEIS E ELEMENTOS DA TELA DE LOGIN ---
+        const loginScreen = document.getElementById('login-screen');
+        const mainSystem = document.getElementById('main-system');
+        const loginForm = document.getElementById('login-form');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('login-btn');
+        const messageDiv = document.getElementById('message');
+
+        // --- FUNÇÕES AUXILIARES ---
+        const formatCurrency = (value) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'N/A';
+        const showLoading = (listElement) => listElement.innerHTML = '<p class="loading">Carregando dados...</p>';
+        const showAlertError = (error, message = 'Ocorreu um erro ao comunicar com o banco de dados.') => {
+            console.error('Erro Supabase:', error);
+            alert(`${message}\nVerifique o console para mais detalhes.`);
+        };
+        function showMessage(text, type) {
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+        }
+
+        // --- LÓGICA DO FORMULÁRIO DE LOGIN ---
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Entrando...';
+            messageDiv.style.display = 'none';
+
+            const email = emailInput.value;
+            const password = passwordInput.value;
+
+            try {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+
+                if (error) {
+                    if (error.message.includes('Invalid login credentials')) {
+                        showMessage('Credenciais de login inválidas. Verifique seu e-mail e senha.', 'error');
+                    } else {
+                        showMessage(`Erro ao fazer login: ${error.message}`, 'error');
+                    }
+                    console.error('Erro de login:', error);
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Entrar';
                 } else {
-                    showMessage(`Erro ao fazer login: ${error.message}`, 'error');
+                    showMessage('Login realizado com sucesso! Carregando sistema...', 'success');
+                    // Chame a função que inicializa o sistema após login
+                    await initSystem(); 
                 }
-                console.error('Erro de login:', error);
+            } catch (err) {
+                showMessage('Ocorreu um erro inesperado. Tente novamente.', 'error');
+                console.error('Erro geral:', err);
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Entrar';
-            } else {
-                showMessage('Login realizado com sucesso! Carregando sistema...', 'success');
-                // Chame a função que inicializa o sistema após login
-                await initSystem(); 
             }
-        } catch (err) {
-            showMessage('Ocorreu um erro inesperado. Tente novamente.', 'error');
-            console.error('Erro geral:', err);
-            loginBtn.disabled = false;
-            loginBtn.textContent = 'Entrar';
+        });
+
+        // --- NAVEGAÇÃO E CONTROLE DE ACESSO POR ROLE ---
+        const navButtons = document.querySelectorAll('.nav-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        const mainNav = document.getElementById('main-nav');
+        mainNav.addEventListener('click', handleNavClick);
+
+        function handleNavClick(e) {
+            if (e.target.tagName !== 'BUTTON') return;
+            const tabId = e.target.dataset.tab;
+
+            console.log(`[handleNavClick] Botão clicado: ${tabId}`); // Log de navegação
+
+            // Controle de acesso baseado na role
+            // Apenas a aba 'configuracao' é restrita para usuários comuns
+            if (currentUserRole === 'user') {
+                if (tabId === 'configuracao') {
+                    alert('Você não tem permissão para acessar esta seção.');
+                    console.warn(`[handleNavClick] Acesso negado para usuário comum na aba: ${tabId}`);
+                    return;
+                }
+            }
+
+            navButtons.forEach(btn => btn.classList.remove('active'));
+            e.target.classList.add('active');
+            tabContents.forEach(content => {
+                const isActive = content.id === `${tabId}-tab`;
+                content.classList.toggle('active', isActive);
+                console.log(`[showSection] Exibindo ${content.id}: ${isActive ? 'block' : 'none'}`); // Log de exibição de seção
+            });
+            
+            // Renderiza o conteúdo da aba selecionada
+            if (tabId === 'relatorio') renderRelatorio();
+            else if (tabId === 'servicos') renderServicos();
+            else if (tabId === 'clientes') renderClientes();
+            else if (tabId === 'pedidos') renderPedidos();
+            else if (tabId === 'configuracao') { // Chamada para a nova aba de configuração
+                console.log('[handleNavClick] Chamando renderEmpresas e renderUsuarios para a aba Configuração.'); // Log específico
+                renderEmpresas(); // Irá carregar empresas
+                renderUsuarios(); // Irá carregar usuários e atualizar o select de empresas
+            }
         }
-    });
 
-    // --- NAVEGAÇÃO E CONTROLE DE ACESSO POR ROLE ---
-    const navButtons = document.querySelectorAll('.nav-btn');
-    const tabContents = document.querySelectorAll('.tab-content');
-    
-    const mainNav = document.getElementById('main-nav');
-    mainNav.addEventListener('click', handleNavClick);
+        // Função de Logout
+        document.getElementById('logout-btn-nav').addEventListener('click', async () => {
+            const { error } = await supabaseClient.auth.signOut();
+            if (error) {
+                showAlertError(error, 'Erro ao fazer logout.');
+            } else {
+                currentUserRole = 'guest'; // Resetar a role
+                currentUserCompanyId = null; // Resetar company_id
+                loginScreen.style.display = 'flex';
+                mainSystem.style.display = 'none';
+                showMessage('Você foi desconectado.', 'success');
+                // Opcional: Recarregar a página para garantir estado limpo
+                // window.location.reload(); 
+            }
+        });
 
-    function handleNavClick(e) {
-        if (e.target.tagName !== 'BUTTON') return;
-        const tabId = e.target.dataset.tab;
+        // Função para inicializar o sistema após o login ou ao carregar a página
+        async function initSystem() {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (user) {
+                loginScreen.style.display = 'none';
+                mainSystem.style.display = 'block';
 
-        console.log(`[handleNavClick] Botão clicado: ${tabId}`); // Log de navegação
+                // Buscar o perfil do usuário para determinar a role e company_id
+                const { data: profile, error } = await supabaseClient
+                    .from('profiles')
+                    .select('role, company_id')
+                    .eq('id', user.id)
+                    .single();
 
-        // Controle de acesso baseado na role
-        // Apenas a aba 'configuracao' é restrita para usuários comuns
-        if (currentUserRole === 'user') {
-            if (tabId === 'configuracao') {
-                alert('Você não tem permissão para acessar esta seção.');
-                console.warn(`[handleNavClick] Acesso negado para usuário comum na aba: ${tabId}`);
+                if (error) {
+                    console.error('Erro ao buscar perfil:', error);
+                    currentUserRole = 'user'; // Padrão seguro em caso de erro
+                    currentUserCompanyId = null; // Garante que não há company_id inválido
+                    console.log('Usuário logado com role: user (padrão devido a erro de perfil)');
+                } else {
+                    currentUserRole = profile.role;
+                    currentUserCompanyId = profile.company_id; 
+                    console.log(`Usuário logado com role: ${currentUserRole}, Company ID: ${currentUserCompanyId}`);
+                }
+
+                // Renderiza a aba ativa inicialmente (Serviços por padrão)
+                const activeTabButton = document.querySelector('.nav-btn.active');
+                if (activeTabButton) {
+                    const tabId = activeTabButton.dataset.tab;
+                    tabContents.forEach(content => content.classList.toggle('active', content.id === `${tabId}-tab`));
+                    // Dispara o carregamento dos dados da aba ativa
+                    if (tabId === 'relatorio') renderRelatorio();
+                    else if (tabId === 'servicos') renderServicos();
+                    else if (tabId === 'clientes') renderClientes();
+                    else if (tabId === 'pedidos') renderPedidos();
+                    else if (tabId === 'configuracao') { // Chamada para a nova aba de configuração
+                        renderEmpresas();
+                        renderUsuarios();
+                    }
+                } else {
+                    // Se nenhuma aba estiver ativa (o que não deve acontecer), renderiza serviços
+                    renderServicos();
+                }
+
+                // Exibir/ocultar botões de administração com base na role
+                document.querySelectorAll('.admin-feature').forEach(btn => {
+                    if (currentUserRole === 'admin') {
+                        btn.style.display = 'block';
+                    } else {
+                        btn.style.display = 'none';
+                    }
+                });
+
+            } else {
+                loginScreen.style.display = 'flex';
+                mainSystem.style.display = 'none';
+            }
+        }
+
+        // Chame initSystem ao carregar a página para verificar o status de login
+        initSystem();
+
+        // --- LÓGICA DE SERVIÇOS ---
+        const formServico = document.getElementById('form-servico');
+        const listaServicos = document.getElementById('lista-servicos');
+
+        async function renderServicos() {
+            showLoading(listaServicos);
+            // Filtra por company_id se não for admin
+            // Explicitamente seleciona as colunas para evitar problemas com o parâmetro 'columns'
+            let query = supabaseClient.from('servicos').select('id, nome, valor, descricao, company_id').order('nome', { ascending: true });
+            if (currentUserRole !== 'admin' && currentUserCompanyId) {
+                query = query.eq('company_id', currentUserCompanyId);
+            }
+
+            const { data, error } = await query;
+            if (error) {
+                showAlertError(error, 'Não foi possível carregar os serviços.');
+                listaServicos.innerHTML = '';
                 return;
             }
-        }
-
-        navButtons.forEach(btn => btn.classList.remove('active'));
-        e.target.classList.add('active');
-        tabContents.forEach(content => {
-            const isActive = content.id === `${tabId}-tab`;
-            content.classList.toggle('active', isActive);
-            console.log(`[showSection] Exibindo ${content.id}: ${isActive ? 'block' : 'none'}`); // Log de exibição de seção
-        });
-        
-        // Renderiza o conteúdo da aba selecionada
-        if (tabId === 'relatorio') renderRelatorio();
-        else if (tabId === 'servicos') renderServicos();
-        else if (tabId === 'clientes') renderClientes();
-        else if (tabId === 'pedidos') renderPedidos();
-        else if (tabId === 'configuracao') { // Chamada para a nova aba de configuração
-            console.log('[handleNavClick] Chamando renderEmpresas e renderUsuarios para a aba Configuração.'); // Log específico
-            renderEmpresas(); // Irá carregar empresas
-            renderUsuarios(); // Irá carregar usuários e atualizar o select de empresas
-        }
-    }
-
-    // Função de Logout
-    document.getElementById('logout-btn-nav').addEventListener('click', async () => {
-        const { error } = await supabaseClient.auth.signOut();
-        if (error) {
-            showAlertError(error, 'Erro ao fazer logout.');
-        } else {
-            currentUserRole = 'guest'; // Resetar a role
-            currentUserCompanyId = null; // Resetar company_id
-            loginScreen.style.display = 'flex';
-            mainSystem.style.display = 'none';
-            showMessage('Você foi desconectado.', 'success');
-            // Opcional: Recarregar a página para garantir estado limpo
-            // window.location.reload(); 
-        }
-    });
-
-    // Função para inicializar o sistema após o login ou ao carregar a página
-    async function initSystem() {
-        const { data: { user } } = await supabaseClient.auth.getUser();
-        if (user) {
-            loginScreen.style.display = 'none';
-            mainSystem.style.display = 'block';
-
-            // Buscar o perfil do usuário para determinar a role e company_id
-            const { data: profile, error } = await supabaseClient
-                .from('profiles')
-                .select('role, company_id')
-                .eq('id', user.id)
-                .single();
-
-            if (error) {
-                console.error('Erro ao buscar perfil:', error);
-                currentUserRole = 'user'; // Padrão seguro em caso de erro
-                currentUserCompanyId = null; // Garante que não há company_id inválido
-                console.log('Usuário logado com role: user (padrão devido a erro de perfil)');
-            } else {
-                currentUserRole = profile.role;
-                currentUserCompanyId = profile.company_id; 
-                console.log(`Usuário logado com role: ${currentUserRole}, Company ID: ${currentUserCompanyId}`);
-            }
-
-            // Renderiza a aba ativa inicialmente (Serviços por padrão)
-            const activeTabButton = document.querySelector('.nav-btn.active');
-            if (activeTabButton) {
-                const tabId = activeTabButton.dataset.tab;
-                tabContents.forEach(content => content.classList.toggle('active', content.id === `${tabId}-tab`));
-                // Dispara o carregamento dos dados da aba ativa
-                if (tabId === 'relatorio') renderRelatorio();
-                else if (tabId === 'servicos') renderServicos();
-                else if (tabId === 'clientes') renderClientes();
-                else if (tabId === 'pedidos') renderPedidos();
-                else if (tabId === 'configuracao') { // Chamada para a nova aba de configuração
-                    renderEmpresas();
-                    renderUsuarios();
-                }
-            } else {
-                // Se nenhuma aba estiver ativa (o que não deve acontecer), renderiza serviços
-                renderServicos();
-            }
-
-            // Exibir/ocultar botões de administração com base na role
-            document.querySelectorAll('.admin-feature').forEach(btn => {
-                if (currentUserRole === 'admin') {
-                    btn.style.display = 'block';
-                } else {
-                    btn.style.display = 'none';
-                }
-            });
-
-        } else {
-            loginScreen.style.display = 'flex';
-            mainSystem.style.display = 'none';
-        }
-    }
-
-    // Chame initSystem ao carregar a página para verificar o status de login
-    initSystem();
-
-    // --- LÓGICA DE SERVIÇOS ---
-    const formServico = document.getElementById('form-servico');
-    const listaServicos = document.getElementById('lista-servicos');
-
-    async function renderServicos() {
-        showLoading(listaServicos);
-        // Filtra por company_id se não for admin
-        // Explicitamente seleciona as colunas para evitar problemas com o parâmetro 'columns'
-        let query = supabaseClient.from('servicos').select('id, nome, valor, descricao, company_id').order('nome', { ascending: true });
-        if (currentUserRole !== 'admin' && currentUserCompanyId) {
-            query = query.eq('company_id', currentUserCompanyId);
-        }
-
-        const { data, error } = await query;
-        if (error) {
-            showAlertError(error, 'Não foi possível carregar os serviços.');
-            listaServicos.innerHTML = '';
-            return;
-        }
-        servicosCache = data;
-        listaServicos.innerHTML = data.map(servico => `
-            <div class="item-card">
-                <div>
-                    <strong>${servico.nome}</strong><br>
-                    <span>${formatCurrency(servico.valor)}</span>
-                    ${servico.descricao ? `<br><small>${servico.descricao}</small>` : ''}
-                </div>
-                <button class="delete-btn" data-id="${servico.id}">Excluir</button>
-            </div>
-        `).join('');
-        updatePedidoFormOptions();
-    }
-
-    formServico.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('btn-add-servico');
-        btn.disabled = true;
-        btn.textContent = 'Adicionando...';
-
-        const nomeServico = document.getElementById('nome-servico').value;
-        let valorServico = parseFloat(document.getElementById('valor-servico').value);
-        const descricaoServico = document.getElementById('descricao-servico').value; // Captura a descrição
-
-        // Adicionar validação para garantir que valorServico é um número válido
-        if (isNaN(valorServico)) {
-            showAlertError(null, 'O valor do serviço deve ser um número válido.');
-            btn.disabled = false;
-            btn.textContent = 'Adicionar Serviço';
-            return; // Interrompe a função se o valor não for válido
-        }
-
-        // Garante que o company_id seja incluído
-        const { error } = await supabaseClient.from('servicos').insert([{ 
-            nome: nomeServico, 
-            valor: valorServico, 
-            descricao: descricaoServico, // Inclui a descrição
-            company_id: currentUserCompanyId 
-        }]);
-        if (error) showAlertError(error, 'Erro ao adicionar serviço.');
-        else {
-            formServico.reset();
-            await renderServicos();
-        }
-        btn.disabled = false;
-        btn.textContent = 'Adicionar Serviço';
-    });
-
-    listaServicos.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('delete-btn') && confirm('Tem certeza que deseja excluir este serviço?')) {
-            const id = e.target.dataset.id;
-            const { error } = await supabaseClient.from('servicos').delete().eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
-            if (error) showAlertError(error, 'Erro ao excluir serviço. Verifique se ele não está em uso em algum pedido.');
-            else await renderServicos();
-        }
-    });
-
-    // --- LÓGICA DE CLIENTES ---
-    const formCliente = document.getElementById('form-cliente');
-    const listaClientes = document.getElementById('lista-clientes');
-
-    async function renderClientes() {
-        showLoading(listaClientes);
-        // Filtra por company_id se não for admin
-        let query = supabaseClient.from('clientes').select('*').order('nome', { ascending: true });
-        if (currentUserRole !== 'admin' && currentUserCompanyId) {
-            query = query.eq('company_id', currentUserCompanyId);
-        }
-
-        const { data, error } = await query;
-        if (error) {
-            showAlertError(error, 'Não foi possível carregar os clientes.');
-            listaClientes.innerHTML = '';
-            return;
-        }
-        clientesCache = data;
-        listaClientes.innerHTML = data.map(cliente => `
-            <div class="item-card">
-                <div>
-                    <strong>${cliente.nome}</strong><br>
-                    <small>${cliente.email || 'N/A'} | ${cliente.telefone || 'N/A'}</small>
-                    ${cliente.endereco ? `<br><small>Endereço: ${cliente.endereco}</small>` : ''}
-                    ${cliente.cnpj_cpf ? `<br><small>CNPJ/CPF: ${cliente.cnpj_cpf}</small>` : ''}
-                    ${cliente.responsavel ? `<br><small>Responsável: ${cliente.responsavel}</small>` : ''}
-                </div>
-                <button class="delete-btn" data-id="${cliente.id}">Excluir</button>
-            </div>
-        `).join('');
-        updatePedidoFormOptions();
-    }
-
-    formCliente.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('btn-add-cliente');
-        btn.disabled = true;
-        btn.textContent = 'Adicionando...';
-        // Captura os novos campos
-        const nomeCliente = document.getElementById('nome-cliente').value;
-        const emailCliente = document.getElementById('email-cliente').value;
-        const telefoneCliente = document.getElementById('telefone-cliente').value;
-        const enderecoCliente = document.getElementById('endereco-cliente').value;
-        const cnpjCpfCliente = document.getElementById('cnpj-cpf-cliente').value;
-        const responsavelCliente = document.getElementById('responsavel-cliente').value;
-
-        // Garante que o company_id seja incluído
-        const { error } = await supabaseClient.from('clientes').insert([{ 
-            nome: nomeCliente, 
-            email: emailCliente, 
-            telefone: telefoneCliente,
-            endereco: enderecoCliente, // Inclui o endereço
-            cnpj_cpf: cnpjCpfCliente, // Inclui o CNPJ/CPF
-            responsavel: responsavelCliente, // Inclui o responsável
-            company_id: currentUserCompanyId 
-        }]);
-        if (error) showAlertError(error, 'Erro ao adicionar cliente.');
-        else {
-            formCliente.reset();
-            await renderClientes();
-        }
-        btn.disabled = false;
-        btn.textContent = 'Adicionar Cliente';
-    });
-
-    listaClientes.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('delete-btn') && confirm('Tem certeza que deseja excluir este cliente?')) {
-            const id = e.target.dataset.id;
-            const { error } = await supabaseClient.from('clientes').delete().eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
-            if (error) showAlertError(error, 'Erro ao excluir cliente. Pedidos associados a ele não serão excluídos.');
-            else await renderClientes();
-        }
-    });
-
-    // --- LÓGICA DE PEDIDOS ---
-    const formPedido = document.getElementById('form-pedido');
-    const listaPedidos = document.getElementById('lista-pedidos');
-    const clientePedidoSelect = document.getElementById('cliente-pedido');
-    const servicoPedidoSelect = document.getElementById('servico-pedido');
-
-    function updatePedidoFormOptions() {
-        clientePedidoSelect.innerHTML = '<option value="">Selecione um cliente</option>' + clientesCache.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
-        servicoPedidoSelect.innerHTML = '<option value="">Selecione um serviço</option>' + servicosCache.map(s => `<option value="${s.id}">${s.nome} - ${formatCurrency(s.valor)}</option>`).join('');
-    }
-
-    const updatePedidoTotal = () => {
-        const totalServicos = servicosNoPedidoAtual.reduce((acc, item) => acc + (item.valor * item.quantidade), 0);
-        const desconto = parseFloat(document.getElementById('desconto-pedido').value) || 0;
-        document.getElementById('total-pedido').textContent = formatCurrency(Math.max(0, totalServicos - desconto));
-    };
-    
-    document.getElementById('add-servico-pedido-btn').addEventListener('click', () => {
-        const servicoId = servicoPedidoSelect.value; // Removido parseInt, agora é string (UUID)
-        const quantidade = parseInt(document.getElementById('quantidade-servico').value);
-        
-        console.log('Tentando adicionar serviço ao pedido:');
-        console.log('ID do serviço selecionado:', servicoId);
-        console.log('Quantidade selecionada:', quantidade);
-        console.log('servicosCache atual:', servicosCache);
-
-        if (!servicoId || isNaN(quantidade) || quantidade <= 0) { 
-            alert('Selecione um serviço e insira uma quantidade válida.');
-            console.log('Validação falhou: ID do serviço ou quantidade inválida.');
-            return;
-        }
-        // CORREÇÃO: Usar 's.id' em vez de 'item.id' na função find
-        const servico = servicosCache.find(s => String(s.id) === String(servicoId)); 
-        
-        if (servico) {
-            console.log('Serviço encontrado no cache:', servico);
-            // Verifica se o serviço já está na lista e atualiza a quantidade
-            const existingServiceIndex = servicosNoPedidoAtual.findIndex(item => String(item.id) === String(servicoId));
-            if (existingServiceIndex > -1) {
-                servicosNoPedidoAtual[existingServiceIndex].quantidade += quantidade;
-                console.log('Quantidade do serviço existente atualizada:', servicosNoPedidoAtual[existingServiceIndex]);
-            } else {
-                servicosNoPedidoAtual.push({ ...servico, quantidade });
-                console.log('Novo serviço adicionado à lista do pedido:', servicosNoPedidoAtual[servicosNoPedidoAtual.length - 1]);
-            }
-            
-            renderServicosDoPedido();
-            updatePedidoTotal();
-            servicoPedidoSelect.value = '';
-            document.getElementById('quantidade-servico').value = '1';
-        } else {
-            alert('Serviço não encontrado no cache. Tente recarregar a página.');
-            console.error('Serviço não encontrado no cache para o ID:', servicoId);
-        }
-    });
-
-    function renderServicosDoPedido() {
-        const listaServicosSelecionados = document.getElementById('pedido-servicos-selecionados');
-        listaServicosSelecionados.innerHTML = servicosNoPedidoAtual.map((item, index) => `
-            <li>
-                <span>${item.quantidade}x ${item.nome} (${formatCurrency(item.valor * item.quantidade)})</span>
-                <button type="button" class="delete-btn" data-index="${index}">x</button>
-            </li>
-        `).join('');
-    }
-
-    document.getElementById('pedido-servicos-selecionados').addEventListener('click', (e) => {
-        if (e.target.classList.contains('delete-btn')) {
-            servicosNoPedidoAtual.splice(parseInt(e.target.dataset.index), 1);
-            renderServicosDoPedido();
-            updatePedidoTotal();
-        }
-    });
-
-    document.getElementById('desconto-pedido').addEventListener('input', updatePedidoTotal);
-
-    formPedido.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        // CORREÇÃO: clienteId agora é uma string (UUID)
-        const clienteId = clientePedidoSelect.value; 
-        
-        if (!clienteId || servicosNoPedidoAtual.length === 0) {
-            alert('Selecione um cliente e adicione pelo menos um serviço.');
-            console.log('Validação de pedido falhou: cliente ou serviços ausentes.');
-            return;
-        }
-        
-        const btn = document.getElementById('btn-add-pedido');
-        btn.disabled = true;
-        btn.textContent = 'Criando...';
-
-        const totalOriginal = servicosNoPedidoAtual.reduce((acc, item) => acc + (item.valor * item.quantidade), 0);
-        const desconto = parseFloat(document.getElementById('desconto-pedido').value) || 0;
-        const totalFinal = Math.max(0, totalOriginal - desconto);
-
-        // Obtenha a sessão atual para pegar o user_id de forma correta
-        const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-
-        if (sessionError || !session) {
-            alert('Erro: Não foi possível obter sua sessão de usuário. Por favor, faça login novamente.');
-            console.error('Erro ao obter sessão para criar pedido:', sessionError);
-            btn.disabled = false;
-            btn.textContent = 'Criar Pedido';
-            return;
-        }
-
-        console.log('Dados do pedido a serem inseridos:');
-        console.log('cliente_id:', clienteId);
-        console.log('servicos:', servicosNoPedidoAtual);
-        console.log('desconto:', desconto); // Log do valor de desconto
-        console.log('total_original:', totalOriginal);
-        console.log('total_final:', totalFinal);
-        console.log('user_id:', session.user.id);
-        console.log('company_id:', currentUserCompanyId);
-
-        const { error } = await supabaseClient.from('pedidos').insert([{
-            cliente_id: clienteId,
-            servicos: servicosNoPedidoAtual,
-            desconto, // Certifique-se de que esta coluna existe e é do tipo correto (NUMERIC)
-            total_original: totalOriginal,
-            total_final: totalFinal,
-            user_id: session.user.id, 
-            company_id: currentUserCompanyId // Adiciona o company_id
-        }]);
-
-        if (error) {
-            showAlertError(error, 'Erro ao criar pedido. Verifique o console para mais detalhes.');
-            console.error('Erro detalhado na inserção do pedido:', error); // Log detalhado do erro
-        } else {
-            console.log('Pedido criado com sucesso!');
-            formPedido.reset();
-            servicosNoPedidoAtual = [];
-            document.getElementById('pedido-servicos-selecionados').innerHTML = '';
-            updatePedidoTotal();
-            await renderPedidos();
-        }
-        btn.disabled = false;
-        btn.textContent = 'Criar Pedido';
-    });
-
-    async function renderPedidos() {
-        showLoading(listaPedidos);
-        // Filtra por company_id se não for admin
-        let query = supabaseClient
-            .from('pedidos')
-            .select('*, clientes(nome, email, telefone)') 
-            .order('data_solicitacao', { ascending: false }); 
-            
-        if (currentUserRole !== 'admin' && currentUserCompanyId) {
-            query = query.eq('company_id', currentUserCompanyId);
-        }
-
-        const { data, error } = await query;
-            
-        if (error) {
-            showAlertError(error, 'Não foi possível carregar os pedidos.');
-            listaPedidos.innerHTML = '';
-            return;
-        }
-
-        const pedidosAgrupadosPorCliente = {};
-
-        data.forEach(pedido => {
-            const clienteNome = pedido.clientes ? pedido.clientes.nome : 'Cliente Removido';
-            const clienteId = pedido.cliente_id;
-
-            const clienteKey = `cliente_${clienteId || 'null'}_${clienteNome.replace(/\s/g, '_')}`;
-
-            if (!pedidosAgrupadosPorCliente[clienteKey]) {
-                pedidosAgrupadosPorCliente[clienteKey] = {
-                    nome: clienteNome,
-                    id: clienteId,
-                    pedidosPendentes: [],
-                    outrosPedidos: []
-                };
-            }
-
-            if (pedido.status_pagamento === 'Pendente') {
-                pedidosAgrupadosPorCliente[clienteKey].pedidosPendentes.push(pedido);
-            } else {
-                pedidosAgrupadosPorCliente[clienteKey].outrosPedidos.push(pedido);
-            }
-        });
-
-        let htmlPedidos = '';
-
-        const clientesKeysOrdenadas = Object.keys(pedidosAgrupadosPorCliente).sort((a, b) => {
-            const nomeA = pedidosAgrupadosPorCliente[a].nome.toLowerCase();
-            const nomeB = pedidosAgrupadosPorCliente[b].nome.toLowerCase();
-            if (nomeA < nomeB) return -1;
-            if (nomeA > nomeB) return 1;
-            return 0;
-        });
-
-        clientesKeysOrdenadas.forEach(key => {
-            const clienteInfo = pedidosAgrupadosPorCliente[key];
-
-            if (clienteInfo.pedidosPendentes.length > 0) {
-                htmlPedidos += `
-                    <div class="cliente-grupo-pedidos">
-                        <h3 style="margin-top: 0; color: var(--primary-color);">Pedidos Pendentes de ${clienteInfo.nome}</h3>
-                        <div class="item-list">
-                            ${clienteInfo.pedidosPendentes.map(pedido => renderPedidoCard(pedido)).join('')}
-                        </div>
-                    </div>
-                `;
-            }
-
-            if (clienteInfo.outrosPedidos.length > 0) {
-                if (clienteInfo.pedidosPendentes.length > 0) {
-                    htmlPedidos += `<hr style="border: 0; border-top: 1px dashed #eee; margin: 20px 0;">`;
-                }
-                htmlPedidos += `
-                    <div class="cliente-grupo-pedidos">
-                        <h3 style="margin-top: 0; color: #666;">Outros Pedidos de ${clienteInfo.nome}</h3>
-                        <div class="item-list">
-                            ${clienteInfo.outrosPedidos.map(pedido => renderPedidoCard(pedido)).join('')}
-                        </div>
-                    </div>
-                `;
-            }
-        });
-
-        listaPedidos.innerHTML = htmlPedidos;
-    }
-
-    function renderPedidoCard(pedido) {
-        const clienteNome = pedido.clientes ? pedido.clientes.nome : 'Cliente Removido';
-        let valorHtml = `<h3 class="preco-final">${formatCurrency(pedido.total_final)}</h3>`;
-        if (pedido.desconto > 0) {
-            valorHtml = `<span class="preco-original">${formatCurrency(pedido.total_original)}</span> <span class="desconto-valor">(- ${formatCurrency(pedido.desconto)})</span> ${valorHtml}`;
-        }
-        return `
-            <div class="pedido-card">
-                <div class="pedido-header">
-                    <h3>Pedido #${pedido.id}</h3>
-                    <span>${formatDate(pedido.data_solicitacao)}</span>
-                </div>
-                <p><strong>Cliente:</strong> ${clienteNome}</p>
-                <ul class="pedido-servicos-list">
-                    ${pedido.servicos.map(s => `<li>${s.quantidade}x ${s.nome} <span>${formatCurrency(s.valor * s.quantidade)}</span></li>`).join('')}
-                </ul>
-                <div class="pedido-valores">${valorHtml}</div>
-                <div class="pedido-status">
-                    <div class="status-group">
-                        <label>Pagamento:</label>
-                        <select class="status-select" data-id="${pedido.id}" data-type="pagamento">
-                            <option value="Pendente" ${pedido.status_pagamento === 'Pendente' ? 'selected' : ''}>Pendente</option>
-                            <option value="Pago" ${pedido.status_pagamento === 'Pago' ? 'selected' : ''}>Pago</option>
-                        </select>
-                    </div>
-                    <div class="status-group">
-                        <label>Entrega:</label>
-                        <select class="status-select" data-id="${pedido.id}" data-type="entrega">
-                            <option value="Pendente" ${pedido.status_entrega === 'Pendente' ? 'selected' : ''}>Pendente</option>
-                            <option value="Entregue" ${pedido.status_entrega === 'Entregue' ? 'selected' : ''}>Entregue</option>
-                        </select>
-                    </div>
-                    <div class="status-group">
-                        <label>Data Entrega:</label>
-                        <input type="date" class="data-entrega-input" data-id="${pedido.id}" value="${pedido.data_entrega ? pedido.data_entrega.split('T')[0] : ''}">
-                    </div>
-                </div>
-                <div class="pedido-actions">
-                    <button class="view-comprovante-btn" data-id="${pedido.id}">Ver Comprovante</button>
-                    <button class="delete-btn" data-id="${pedido.id}">Excluir Pedido</button>
-                </div>
-            </div>
-        `;
-    }
-
-    listaPedidos.addEventListener('change', async (e) => {
-        if (e.target.classList.contains('status-select')) {
-            const id = e.target.dataset.id;
-            const type = e.target.dataset.type;
-            const value = e.target.value;
-            let updateData = {};
-            if (type === 'pagamento') updateData = { status_pagamento: value };
-            else if (type === 'entrega') updateData = { status_entrega: value };
-
-            const { error } = await supabaseClient.from('pedidos').update(updateData).eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
-            if (error) showAlertError(error, `Erro ao atualizar status de ${type}.`);
-            else renderPedidos(); // Recarrega para mostrar o status atualizado
-        } else if (e.target.classList.contains('data-entrega-input')) {
-            const id = e.target.dataset.id;
-            const value = e.target.value; // Formato YYYY-MM-DD
-            // Para garantir que o Supabase interprete como UTC para compatibilidade
-            const dateUTC = value ? new Date(value + 'T00:00:00Z').toISOString() : null;
-
-            const { error } = await supabaseClient.from('pedidos').update({ data_entrega: dateUTC }).eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
-            if (error) showAlertError(error, 'Erro ao atualizar data de entrega.');
-            else renderPedidos();
-        }
-    });
-
-    listaPedidos.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('delete-btn') && confirm('Tem certeza que deseja excluir este pedido?')) {
-            const id = e.target.dataset.id;
-            const { error } = await supabaseClient.from('pedidos').delete().eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
-            if (error) showAlertError(error, 'Erro ao excluir pedido.');
-            else await renderPedidos();
-        }
-        if (e.target.classList.contains('view-comprovante-btn')) {
-            const pedidoId = e.target.dataset.id;
-            await renderComprovanteModal(pedidoId);
-        }
-    });
-
-    // --- LÓGICA DO RELATÓRIO ---
-    const corpoTabelaRelatorio = document.getElementById('corpo-tabela-relatorio');
-    const listaResumoPendencias = document.getElementById('lista-resumo-pendencias');
-
-    async function renderRelatorio() {
-        showLoading(corpoTabelaRelatorio);
-        showLoading(listaResumoPendencias);
-
-        const trintaDiasAtras = new Date();
-        trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
-        const dataMinima = trintaDiasAtras.toISOString();
-
-        // Filtra por company_id se não for admin
-        let query = supabaseClient
-            .from('pedidos')
-            .select('*, clientes(nome)')
-            .gte('data_solicitacao', dataMinima)
-            .order('data_solicitacao', { ascending: false });
-
-        if (currentUserRole !== 'admin' && currentUserCompanyId) {
-            query = query.eq('company_id', currentUserCompanyId);
-        }
-
-        const { data: pedidos, error } = await query;
-
-        if (error) {
-            showAlertError(error, 'Não foi possível carregar o relatório.');
-            corpoTabelaRelatorio.innerHTML = '<tr><td colspan="7">Erro ao carregar o relatório.</td></tr>';
-            listaResumoPendencias.innerHTML = '';
-            return;
-        }
-
-        if (pedidos.length === 0) {
-            corpoTabelaRelatorio.innerHTML = '<tr><td colspan="7">Nenhum pedido encontrado nos últimos 30 dias.</td></tr>';
-        } else {
-            corpoTabelaRelatorio.innerHTML = pedidos.map(pedido => `
-                <tr>
-                    <td>#${pedido.id}</td>
-                    <td>${pedido.clientes ? pedido.clientes.nome : 'Cliente Removido'}</td>
-                    <td>${formatDate(pedido.data_solicitacao)}</td>
-                    <td>${formatDate(pedido.data_entrega)}</td>
-                    <td>${formatCurrency(pedido.total_final)}</td>
-                    <td>${pedido.status_pagamento}</td>
-                    <td>${pedido.status_entrega}</td>
-                </tr>
-            `).join('');
-        }
-
-        // --- Resumo de Pendências ---
-        const resumoPendencias = {};
-
-        pedidos.forEach(pedido => {
-            if (pedido.status_pagamento === 'Pendente') {
-                const clienteNome = pedido.clientes ? pedido.clientes.nome : 'Cliente Removido';
-                if (!resumoPendencias[clienteNome]) {
-                    resumoPendencias[clienteNome] = { nome: clienteNome, totalPendente: 0, pedidos: [] };
-                }
-                resumoPendencias[clienteNome].totalPendente += pedido.total_final;
-                resumoPendencias[clienteNome].pedidos.push(pedido);
-            }
-        });
-
-        const clientesComPendencia = Object.values(resumoPendencias).sort((a, b) => {
-            const nomeA = a.nome.toLowerCase(); 
-            const nomeB = b.nome.toLowerCase();
-            if (nomeA < nomeB) return -1;
-            if (nomeA > nomeB) return 1;
-            return 0;
-        });
-
-        if (clientesComPendencia.length === 0) {
-            listaResumoPendencias.innerHTML = '<p>Nenhum valor pendente.</p>';
-        } else {
-            listaResumoPendencias.innerHTML = clientesComPendencia.map(cliente => `
-                <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-radius: 5px; background-color: #f9f9f9;">
-                    <strong>${cliente.nome}:</strong> ${formatCurrency(cliente.totalPendente)} em ${cliente.pedidos.length} pedido(s) pendente(s).
-                    <ul style="list-style: disc; padding-left: 20px; margin-top: 5px;">
-                        ${cliente.pedidos.map(p => `<li>Pedido #${p.id} (${formatDate(p.data_solicitacao)}): ${formatCurrency(p.total_final)}</li>`).join('')}
-                    </ul>
-                </div>
-            `).join('');
-        }
-    }
-
-    document.getElementById('exportar-relatorio-pdf').addEventListener('click', async () => {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p', 'pt', 'a4');
-        const element = document.getElementById('relatorio-tab'); // Captura a aba inteira do relatório
-
-        // Adiciona um título ao PDF
-        doc.setFontSize(18);
-        doc.text("Relatório de Pedidos", 40, 40);
-
-        // Renderiza o HTML para canvas e depois para PDF
-        html2canvas(element, { 
-            scale: 2, // Aumenta a escala para melhor qualidade
-            useCORS: true, // Importante se tiver imagens ou recursos de outras origens
-            allowTaint: true 
-        }).then(canvas => {
-            const imgData = canvas.toDataURL('image/png');
-            const imgWidth = 595; // Largura A4 em pt
-            const pageHeight = 842; // Altura A4 em pt
-            const imgHeight = canvas.height * imgWidth / canvas.width;
-            let heightLeft = imgHeight;
-            let position = 60; // Posição inicial abaixo do título
-
-            doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
-
-            while (heightLeft >= 0) {
-                position = heightLeft - imgHeight;
-                doc.addPage();
-                doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-            }
-            doc.save('relatorio_pedidos.pdf');
-        }).catch(error => {
-            console.error('Erro ao gerar PDF:', error);
-            alert('Ocorreu um erro ao gerar o PDF do relatório. Verifique o console.');
-        });
-    });
-
-    // --- Lógica do Comprovante Modal ---
-    const comprovanteModal = document.getElementById('comprovante-modal');
-    const comprovanteContainer = document.getElementById('comprovante-container');
-    const fecharModalBtn = document.getElementById('fechar-modal');
-    const exportComprovantePngBtn = document.getElementById('export-comprovante-png');
-    const exportComprovantePdfBtn = document.getElementById('export-comprovante-pdf');
-    let currentPedidoParaComprovante = null; // Para guardar os dados do pedido atual do comprovante
-
-    async function renderComprovanteModal(pedidoId) {
-        const { data: pedido, error } = await supabaseClient
-            .from('pedidos')
-            .select('*, clientes(nome, email, telefone)')
-            .eq('id', pedidoId)
-            .single();
-
-        if (error || !pedido) {
-            showAlertError(error, 'Não foi possível carregar os detalhes do pedido para o comprovante.');
-            return;
-        }
-
-        currentPedidoParaComprovante = pedido; // Salva o pedido para exportação
-
-        const cliente = pedido.clientes;
-        const dataSolicitacao = formatDate(pedido.data_solicitacao);
-        const dataEntrega = formatDate(pedido.data_entrega);
-
-        let servicosHtml = pedido.servicos.map(s => `
-            <li>
-                <span>${s.quantidade}x ${s.nome}</span>
-                <span>${s.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} cada</span>
-                <span>${(s.valor * s.quantidade).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-            </li>
-        `).join('');
-
-        comprovanteContainer.innerHTML = `
-            <h3>Detalhes do Pedido #${pedido.id}</h3>
-            <p><strong>Cliente:</strong> ${cliente ? cliente.nome : 'N/A'}</p>
-            <p><strong>Email:</strong> ${cliente ? cliente.email || 'N/A' : 'N/A'}</p>
-            <p><strong>Telefone:</strong> ${cliente ? cliente.telefone || 'N/A' : 'N/A'}</p>
-            <p><strong>Data da Solicitação:</strong> ${dataSolicitacao}</p>
-            <p><strong>Data da Entrega:</strong> ${dataEntrega}</p>
-            <hr>
-            <h4>Serviços:</h4>
-            <ul class="pedido-servicos-list">
-                ${servicosHtml}
-            </ul>
-            <hr>
-            <p><strong>Total Original:</strong> ${formatCurrency(pedido.total_original)}</p>
-            <p><strong>Desconto:</strong> ${formatCurrency(pedido.desconto)}</p>
-            <h3><strong>Total Final:</strong> ${formatCurrency(pedido.total_final)}</h3>
-            <p><strong>Status Pagamento:</strong> ${pedido.status_pagamento}</p>
-            <p><strong>Status Entrega:</strong> ${pedido.status_entrega}</p>
-        `;
-        comprovanteModal.style.display = 'flex';
-    }
-
-    fecharModalBtn.addEventListener('click', () => {
-        comprovanteModal.style.display = 'none';
-        currentPedidoParaComprovante = null;
-    });
-
-    exportComprovantePngBtn.addEventListener('click', () => {
-        if (!currentPedidoParaComprovante) return;
-        html2canvas(comprovanteContainer, { scale: 2, useCORS: true, allowTaint: true }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = `comprovante_pedido_${currentPedidoParaComprovante.id}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        }).catch(error => {
-            console.error('Erro ao exportar PNG:', error);
-            alert('Ocorreu um erro ao exportar o comprovante como PNG.');
-        });
-    });
-
-    exportComprovantePdfBtn.addEventListener('click', () => {
-        if (!currentPedidoParaComprovante) return;
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p', 'pt', 'a4');
-        
-        html2canvas(comprovanteContainer, { scale: 2, useCORS: true, allowTaint: true }).then(canvas => {
-            const imgData = canvas.toDataURL('image/png');
-            const imgWidth = 595; // A4 width in pts
-            const imgHeight = canvas.height * imgWidth / canvas.width;
-            
-            doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-            doc.save(`comprovante_pedido_${currentPedidoParaComprovante.id}.pdf`);
-        }).catch(error => {
-            console.error('Erro ao exportar PDF:', error);
-            alert('Ocorreu um erro ao exportar o comprovante como PDF.');
-        });
-    });
-
-    // --- LÓGICA DE EMPRESAS (ADMIN APENAS) ---
-    const formEmpresa = document.getElementById('form-empresa');
-    const listaEmpresas = document.getElementById('lista-empresas');
-    const empresaUsuarioSelect = document.getElementById('empresa-usuario'); // Select de empresa na criação de usuário
-
-    async function renderEmpresas() {
-        console.log('[renderEmpresas] Função chamada.'); // Log de entrada
-        if (currentUserRole !== 'admin') {
-            // Se não for admin, apenas garante que a mensagem de permissão negada esteja lá
-            listaEmpresas.innerHTML = '<p>Você não tem permissão para visualizar empresas.</p>';
-            console.log('[renderEmpresas] Usuário não é admin, acesso negado.'); // Log de permissão
-            return;
-        }
-        
-        // Mantém a mensagem para usuários admin também, pois a lista não será renderizada
-        listaEmpresas.innerHTML = '<p>A lista de empresas não é exibida aqui. As empresas cadastradas aparecerão no campo de seleção ao criar/editar usuários.</p>';
-        
-        console.log('[renderEmpresas] Tentando carregar empresas do Supabase...'); // Log de carregamento
-        const { data, error } = await supabaseClient.from('companies').select('*').order('name', { ascending: true });
-        if (error) {
-            showAlertError(error, 'Não foi possível carregar as empresas.');
-            // Em caso de erro, exibe uma mensagem de erro em vez da mensagem padrão
-            listaEmpresas.innerHTML = '<p class="error">Erro ao carregar empresas. Verifique o console.</p>';
-            console.error('[renderEmpresas] Erro ao carregar empresas:', error); // Log de erro
-            return;
-        }
-        empresasCache = data; // Atualiza o cache de empresas
-        console.log('[renderEmpresas] Empresas carregadas e cache atualizado:', empresasCache); // Log de dados carregados
-        
-        // Não renderiza o HTML da lista de empresas aqui, apenas atualiza o cache e o select
-        updateEmpresaSelectOptions(); // Atualiza o select de empresas para usuários
-    }
-
-    formEmpresa.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (currentUserRole !== 'admin') { alert('Permissão negada.'); return; }
-
-        const btn = document.getElementById('btn-add-empresa');
-        btn.disabled = true;
-        btn.textContent = 'Adicionando...';
-
-        const nomeEmpresa = document.getElementById('nome-empresa').value;
-        
-        // Chamada RPC para criar a empresa e associar o admin
-        const { data, error } = await supabaseClient.rpc('create_new_company', { company_name: nomeEmpresa });
-
-        if (error) {
-            showAlertError(error, 'Erro ao adicionar empresa.');
-        } else {
-            formEmpresa.reset();
-            alert(`Empresa "${nomeEmpresa}" criada com sucesso! ID: ${data.company_id}`);
-            await renderEmpresas(); // Recarrega as empresas para atualizar o cache e o select
-        }
-        btn.disabled = false;
-        btn.textContent = 'Adicionar Empresa';
-    });
-
-    listaEmpresas.addEventListener('click', async (e) => {
-        // Este listener ainda é necessário se o usuário tentar clicar em algo dentro de listaEmpresas,
-        // mesmo que a lista não esteja visível, para evitar comportamentos inesperados.
-        // No entanto, o botão de exclusão de empresa não estará visível.
-        if (e.target.classList.contains('delete-btn') && currentUserRole === 'admin') {
-            if (confirm('Tem certeza que deseja excluir esta empresa? Isso removerá TODOS os dados associados a ela (usuários, clientes, serviços, pedidos)! Esta ação é irreversível!')) {
-                const id = e.target.dataset.id;
-                const { error } = await supabaseClient.from('companies').delete().eq('id', id);
-                if (error) showAlertError(error, 'Erro ao excluir empresa.');
-                else await renderEmpresas(); // Recarrega as empresas para atualizar o cache e o select
-            }
-        }
-    });
-
-    function updateEmpresaSelectOptions() {
-        console.log('[updateEmpresaSelectOptions] Função chamada.'); // Log de entrada
-        console.log('[updateEmpresaSelectOptions] Conteúdo de empresasCache:', empresasCache); // Log do cache
-        // CORREÇÃO: Verifica se o `empresaUsuarioSelect` existe antes de manipular seu `innerHTML`
-        if (empresaUsuarioSelect) {
-            const optionsHtml = '<option value="">Selecione uma empresa</option>' + empresasCache.map(empresa => `<option value="${empresa.id}">${empresa.name}</option>`).join('');
-            empresaUsuarioSelect.innerHTML = optionsHtml;
-            console.log('[updateEmpresaSelectOptions] empresaUsuarioSelect.innerHTML atualizado para:', optionsHtml); // Log do HTML do select
-        } else {
-            console.warn('[updateEmpresaSelectOptions] Elemento empresaUsuarioSelect não encontrado no DOM.'); // Aviso se o elemento não for encontrado
-        }
-    }
-
-
-    // --- LÓGICA DE USUÁRIOS (ADMIN APENAS) ---
-    const formUsuario = document.getElementById('form-usuario');
-    const listaUsuarios = document.getElementById('lista-usuarios');
-
-    async function renderUsuarios() {
-        console.log('[renderUsuarios] Função chamada.'); // Log de entrada
-        if (currentUserRole !== 'admin') {
-            listaUsuarios.innerHTML = '<p>Você não tem permissão para visualizar usuários.</p>';
-            console.log('[renderUsuarios] Usuário não é admin, acesso negado.'); // Log de permissão
-            return;
-        }
-        showLoading(listaUsuarios);
-        console.log('[renderUsuarios] Tentando carregar usuários do Supabase...'); // Log de carregamento
-        const { data, error } = await supabaseClient.from('profiles').select('*, companies(name)').order('email', { ascending: true });
-        if (error) {
-            showAlertError(error, 'Não foi possível carregar os usuários.');
-            listaUsuarios.innerHTML = '';
-            console.error('[renderUsuarios] Erro ao carregar usuários:', error); // Log de erro
-            return;
-        }
-        console.log('[renderUsuarios] Usuários carregados:', data); // Log de dados carregados
-        
-        let usuariosHtml = '';
-        if (data.length === 0) {
-            usuariosHtml = '<p>Nenhum usuário cadastrado ainda.</p>';
-        } else {
-            usuariosHtml = data.map(usuario => `
+            servicosCache = data;
+            listaServicos.innerHTML = data.map(servico => `
                 <div class="item-card">
                     <div>
-                        <strong>${usuario.email}</strong><br>
-                        <small>Nome: ${usuario.full_name || 'N/A'}</small><br>
-                        <small>Permissão: ${usuario.role}</small><br>
-                        <small>Empresa: ${usuario.companies ? usuario.companies.name : 'N/A'}</small>
+                        <strong>${servico.nome}</strong><br>
+                        <span>${formatCurrency(servico.valor)}</span>
+                        ${servico.descricao ? `<br><small>${servico.descricao}</small>` : ''}
                     </div>
-                    <button class="delete-btn" data-id="${usuario.id}">Excluir</button>
+                    <button class="delete-btn" data-id="${servico.id}">Excluir</button>
                 </div>
             `).join('');
+            updatePedidoFormOptions();
         }
-        console.log('[renderUsuarios] HTML gerado para usuários:', usuariosHtml); // Log do HTML gerado
-        if (listaUsuarios) {
-            listaUsuarios.innerHTML = usuariosHtml;
-            console.log('[renderUsuarios] listaUsuarios.innerHTML atualizado.'); // Log de atualização do DOM
-            console.log('[renderUsuarios] listaUsuarios offsetWidth:', listaUsuarios.offsetWidth, 'offsetHeight:', listaUsuarios.offsetHeight); // Log de dimensões
-        } else {
-            console.warn('[renderUsuarios] Elemento listaUsuarios não encontrado no DOM.'); // Aviso se o elemento não for encontrado
-        }
-        // Recarrega as empresas para o select de usuário
-        await renderEmpresas(); 
-    }
 
-    formUsuario.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (currentUserRole !== 'admin') { alert('Permissão negada.'); return; }
+        formServico.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-add-servico');
+            btn.disabled = true;
+            btn.textContent = 'Adicionando...';
 
-        const btn = document.getElementById('btn-add-usuario');
-        btn.disabled = true;
-        btn.textContent = 'Processando...';
+            const nomeServico = document.getElementById('nome-servico').value;
+            let valorServico = parseFloat(document.getElementById('valor-servico').value);
+            const descricaoServico = document.getElementById('descricao-servico').value; // Captura a descrição
 
-        const email = document.getElementById('email-usuario').value;
-        const password = document.getElementById('senha-usuario').value;
-        const fullName = document.getElementById('nome-completo-usuario').value;
-        const role = document.getElementById('role-usuario').value;
-        const companyId = document.getElementById('empresa-usuario').value;
+            // Adicionar validação para garantir que valorServico é um número válido
+            if (isNaN(valorServico)) {
+                showAlertError(null, 'O valor do serviço deve ser um número válido.');
+                btn.disabled = false;
+                btn.textContent = 'Adicionar Serviço';
+                return; // Interrompe a função se o valor não for válido
+            }
 
-        if (!companyId) {
-            alert('Por favor, selecione uma empresa para o novo usuário.');
+            // Garante que o company_id seja incluído
+            const { error } = await supabaseClient.from('servicos').insert([{ 
+                nome: nomeServico, 
+                valor: valorServico, 
+                descricao: descricaoServico, // Inclui a descrição
+                company_id: currentUserCompanyId 
+            }]);
+            if (error) showAlertError(error, 'Erro ao adicionar serviço.');
+            else {
+                formServico.reset();
+                await renderServicos();
+            }
             btn.disabled = false;
-            btn.textContent = 'Adicionar Usuário';
-            return;
+            btn.textContent = 'Adicionar Serviço';
+        });
+
+        listaServicos.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('delete-btn') && confirm('Tem certeza que deseja excluir este serviço?')) {
+                const id = e.target.dataset.id;
+                const { error } = await supabaseClient.from('servicos').delete().eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
+                if (error) showAlertError(error, 'Erro ao excluir serviço. Verifique se ele não está em uso em algum pedido.');
+                else await renderServicos();
+            }
+        });
+
+        // --- LÓGICA DE CLIENTES ---
+        const formCliente = document.getElementById('form-cliente');
+        const listaClientes = document.getElementById('lista-clientes');
+
+        async function renderClientes() {
+            showLoading(listaClientes);
+            // Filtra por company_id se não for admin
+            let query = supabaseClient.from('clientes').select('*').order('nome', { ascending: true });
+            if (currentUserRole !== 'admin' && currentUserCompanyId) {
+                query = query.eq('company_id', currentUserCompanyId);
+            }
+
+            const { data, error } = await query;
+            if (error) {
+                showAlertError(error, 'Não foi possível carregar os clientes.');
+                listaClientes.innerHTML = '';
+                return;
+            }
+            clientesCache = data;
+            listaClientes.innerHTML = data.map(cliente => `
+                <div class="item-card">
+                    <div>
+                        <strong>${cliente.nome}</strong><br>
+                        <small>${cliente.email || 'N/A'} | ${cliente.telefone || 'N/A'}</small>
+                        ${cliente.endereco ? `<br><small>Endereço: ${cliente.endereco}</small>` : ''}
+                        ${cliente.cnpj_cpf ? `<br><small>CNPJ/CPF: ${cliente.cnpj_cpf}</small>` : ''}
+                        ${cliente.responsavel ? `<br><small>Responsável: ${cliente.responsavel}</small>` : ''}
+                    </div>
+                    <button class="delete-btn" data-id="${cliente.id}">Excluir</button>
+                </div>
+            `).join('');
+            updatePedidoFormOptions();
         }
 
-        try {
-            // Primeiro, cria o usuário na autenticação do Supabase
-            const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
-                email: email,
-                password: password,
-                email_confirm: true // Opcional: envia email de confirmação
+        formCliente.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-add-cliente');
+            btn.disabled = true;
+            btn.textContent = 'Adicionando...';
+            // Captura os novos campos
+            const nomeCliente = document.getElementById('nome-cliente').value;
+            const emailCliente = document.getElementById('email-cliente').value;
+            const telefoneCliente = document.getElementById('telefone-cliente').value;
+            const enderecoCliente = document.getElementById('endereco-cliente').value;
+            const cnpjCpfCliente = document.getElementById('cnpj-cpf-cliente').value;
+            const responsavelCliente = document.getElementById('responsavel-cliente').value;
+
+            // Garante que o company_id seja incluído
+            const { error } = await supabaseClient.from('clientes').insert([{ 
+                nome: nomeCliente, 
+                email: emailCliente, 
+                telefone: telefoneCliente,
+                endereco: enderecoCliente, // Inclui o endereço
+                cnpj_cpf: cnpjCpfCliente, // Inclui o CNPJ/CPF
+                responsavel: responsavelCliente, // Inclui o responsável
+                company_id: currentUserCompanyId 
+            }]);
+            if (error) showAlertError(error, 'Erro ao adicionar cliente.');
+            else {
+                formCliente.reset();
+                await renderClientes();
+            }
+            btn.disabled = false;
+            btn.textContent = 'Adicionar Cliente';
+        });
+
+        listaClientes.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('delete-btn') && confirm('Tem certeza que deseja excluir este cliente?')) {
+                const id = e.target.dataset.id;
+                const { error } = await supabaseClient.from('clientes').delete().eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
+                if (error) showAlertError(error, 'Erro ao excluir cliente. Pedidos associados a ele não serão excluídos.');
+                else await renderClientes();
+            }
+        });
+
+        // --- LÓGICA DE PEDIDOS ---
+        const formPedido = document.getElementById('form-pedido');
+        const listaPedidos = document.getElementById('lista-pedidos');
+        const clientePedidoSelect = document.getElementById('cliente-pedido');
+        const servicoPedidoSelect = document.getElementById('servico-pedido');
+
+        function updatePedidoFormOptions() {
+            clientePedidoSelect.innerHTML = '<option value="">Selecione um cliente</option>' + clientesCache.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+            servicoPedidoSelect.innerHTML = '<option value="">Selecione um serviço</option>' + servicosCache.map(s => `<option value="${s.id}">${s.nome} - ${formatCurrency(s.valor)}</option>`).join('');
+        }
+
+        const updatePedidoTotal = () => {
+            const totalServicos = servicosNoPedidoAtual.reduce((acc, item) => acc + (item.valor * item.quantidade), 0);
+            const desconto = parseFloat(document.getElementById('desconto-pedido').value) || 0;
+            document.getElementById('total-pedido').textContent = formatCurrency(Math.max(0, totalServicos - desconto));
+        };
+        
+        document.getElementById('add-servico-pedido-btn').addEventListener('click', () => {
+            const servicoId = servicoPedidoSelect.value; // Removido parseInt, agora é string (UUID)
+            const quantidade = parseInt(document.getElementById('quantidade-servico').value);
+            
+            console.log('Tentando adicionar serviço ao pedido:');
+            console.log('ID do serviço selecionado:', servicoId);
+            console.log('Quantidade selecionada:', quantidade);
+            console.log('servicosCache atual:', servicosCache);
+
+            if (!servicoId || isNaN(quantidade) || quantidade <= 0) { 
+                alert('Selecione um serviço e insira uma quantidade válida.');
+                console.log('Validação falhou: ID do serviço ou quantidade inválida.');
+                return;
+            }
+            // CORREÇÃO: Usar 's.id' em vez de 'item.id' na função find
+            const servico = servicosCache.find(s => String(s.id) === String(servicoId)); 
+            
+            if (servico) {
+                console.log('Serviço encontrado no cache:', servico);
+                // Verifica se o serviço já está na lista e atualiza a quantidade
+                const existingServiceIndex = servicosNoPedidoAtual.findIndex(item => String(item.id) === String(servicoId));
+                if (existingServiceIndex > -1) {
+                    servicosNoPedidoAtual[existingServiceIndex].quantidade += quantidade;
+                    console.log('Quantidade do serviço existente atualizada:', servicosNoPedidoAtual[existingServiceIndex]);
+                } else {
+                    servicosNoPedidoAtual.push({ ...servico, quantidade });
+                    console.log('Novo serviço adicionado à lista do pedido:', servicosNoPedidoAtual[servicosNoPedidoAtual.length - 1]);
+                }
+                
+                renderServicosDoPedido();
+                updatePedidoTotal();
+                servicoPedidoSelect.value = '';
+                document.getElementById('quantidade-servico').value = '1';
+            } else {
+                alert('Serviço não encontrado no cache. Tente recarregar a página.');
+                console.error('Serviço não encontrado no cache para o ID:', servicoId);
+            }
+        });
+
+        function renderServicosDoPedido() {
+            const listaServicosSelecionados = document.getElementById('pedido-servicos-selecionados');
+            listaServicosSelecionados.innerHTML = servicosNoPedidoAtual.map((item, index) => `
+                <li>
+                    <span>${item.quantidade}x ${item.nome} (${formatCurrency(item.valor * item.quantidade)})</span>
+                    <button type="button" class="delete-btn" data-index="${index}">x</button>
+                </li>
+            `).join('');
+        }
+
+        document.getElementById('pedido-servicos-selecionados').addEventListener('click', (e) => {
+            if (e.target.classList.contains('delete-btn')) {
+                servicosNoPedidoAtual.splice(parseInt(e.target.dataset.index), 1);
+                renderServicosDoPedido();
+                updatePedidoTotal();
+            }
+        });
+
+        document.getElementById('desconto-pedido').addEventListener('input', updatePedidoTotal);
+
+        formPedido.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            // CORREÇÃO: clienteId agora é uma string (UUID)
+            const clienteId = clientePedidoSelect.value; 
+            
+            if (!clienteId || servicosNoPedidoAtual.length === 0) {
+                alert('Selecione um cliente e adicione pelo menos um serviço.');
+                console.log('Validação de pedido falhou: cliente ou serviços ausentes.');
+                return;
+            }
+            
+            const btn = document.getElementById('btn-add-pedido');
+            btn.disabled = true;
+            btn.textContent = 'Criando...';
+
+            const totalOriginal = servicosNoPedidoAtual.reduce((acc, item) => acc + (item.valor * item.quantidade), 0);
+            const desconto = parseFloat(document.getElementById('desconto-pedido').value) || 0;
+            const totalFinal = Math.max(0, totalOriginal - desconto);
+
+            // Obtenha a sessão atual para pegar o user_id de forma correta
+            const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+
+            if (sessionError || !session) {
+                alert('Erro: Não foi possível obter sua sessão de usuário. Por favor, faça login novamente.');
+                console.error('Erro ao obter sessão para criar pedido:', sessionError);
+                btn.disabled = false;
+                btn.textContent = 'Criar Pedido';
+                return;
+            }
+
+            console.log('Dados do pedido a serem inseridos:');
+            console.log('cliente_id:', clienteId);
+            console.log('servicos:', servicosNoPedidoAtual);
+            console.log('desconto:', desconto); // Log do valor de desconto
+            console.log('total_original:', totalOriginal);
+            console.log('total_final:', totalFinal);
+            console.log('user_id:', session.user.id);
+            console.log('company_id:', currentUserCompanyId);
+
+            const { error } = await supabaseClient.from('pedidos').insert([{
+                cliente_id: clienteId,
+                servicos: servicosNoPedidoAtual,
+                desconto, // Certifique-se de que esta coluna existe e é do tipo correto (NUMERIC)
+                total_original: totalOriginal,
+                total_final: totalFinal,
+                user_id: session.user.id, 
+                company_id: currentUserCompanyId // Adiciona o company_id
+            }]);
+
+            if (error) {
+                showAlertError(error, 'Erro ao criar pedido. Verifique o console para mais detalhes.');
+                console.error('Erro detalhado na inserção do pedido:', error); // Log detalhado do erro
+            } else {
+                console.log('Pedido criado com sucesso!');
+                formPedido.reset();
+                servicosNoPedidoAtual = [];
+                document.getElementById('pedido-servicos-selecionados').innerHTML = '';
+                updatePedidoTotal();
+                await renderPedidos();
+            }
+            btn.disabled = false;
+            btn.textContent = 'Criar Pedido';
+        });
+
+        async function renderPedidos() {
+            showLoading(listaPedidos);
+            // Filtra por company_id se não for admin
+            let query = supabaseClient
+                .from('pedidos')
+                .select('*, clientes(nome, email, telefone)') 
+                .order('data_solicitacao', { ascending: false }); 
+                
+            if (currentUserRole !== 'admin' && currentUserCompanyId) {
+                query = query.eq('company_id', currentUserCompanyId);
+            }
+
+            const { data, error } = await query;
+                
+            if (error) {
+                showAlertError(error, 'Não foi possível carregar os pedidos.');
+                listaPedidos.innerHTML = '';
+                return;
+            }
+
+            const pedidosAgrupadosPorCliente = {};
+
+            data.forEach(pedido => {
+                const clienteNome = pedido.clientes ? pedido.clientes.nome : 'Cliente Removido';
+                const clienteId = pedido.cliente_id;
+
+                const clienteKey = `cliente_${clienteId || 'null'}_${clienteNome.replace(/\s/g, '_')}`;
+
+                if (!pedidosAgrupadosPorCliente[clienteKey]) {
+                    pedidosAgrupadosPorCliente[clienteKey] = {
+                        nome: clienteNome,
+                        id: clienteId,
+                        pedidosPendentes: [],
+                        outrosPedidos: []
+                    };
+                }
+
+                if (pedido.status_pagamento === 'Pendente') {
+                    pedidosAgrupadosPorCliente[clienteKey].pedidosPendentes.push(pedido);
+                } else {
+                    pedidosAgrupadosPorCliente[clienteKey].outrosPedidos.push(pedido);
+                }
             });
 
-            if (authError) {
-                showAlertError(authError, 'Erro ao criar usuário na autenticação.');
+            let htmlPedidos = '';
+
+            const clientesKeysOrdenadas = Object.keys(pedidosAgrupadosPorCliente).sort((a, b) => {
+                const nomeA = pedidosAgrupadosPorCliente[a].nome.toLowerCase();
+                const nomeB = pedidosAgrupadosPorCliente[b].nome.toLowerCase();
+                if (nomeA < nomeB) return -1;
+                if (nomeA > nomeB) return 1;
+                return 0;
+            });
+
+            clientesKeysOrdenadas.forEach(key => {
+                const clienteInfo = pedidosAgrupadosPorCliente[key];
+
+                if (clienteInfo.pedidosPendentes.length > 0) {
+                    htmlPedidos += `
+                        <div class="cliente-grupo-pedidos">
+                            <h3 style="margin-top: 0; color: var(--primary-color);">Pedidos Pendentes de ${clienteInfo.nome}</h3>
+                            <div class="item-list">
+                                ${clienteInfo.pedidosPendentes.map(pedido => renderPedidoCard(pedido)).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (clienteInfo.outrosPedidos.length > 0) {
+                    if (clienteInfo.pedidosPendentes.length > 0) {
+                        htmlPedidos += `<hr style="border: 0; border-top: 1px dashed #eee; margin: 20px 0;">`;
+                    }
+                    htmlPedidos += `
+                        <div class="cliente-grupo-pedidos">
+                            <h3 style="margin-top: 0; color: #666;">Outros Pedidos de ${clienteInfo.nome}</h3>
+                            <div class="item-list">
+                                ${clienteInfo.outrosPedidos.map(pedido => renderPedidoCard(pedido)).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            listaPedidos.innerHTML = htmlPedidos;
+        }
+
+        function renderPedidoCard(pedido) {
+            const clienteNome = pedido.clientes ? pedido.clientes.nome : 'Cliente Removido';
+            let valorHtml = `<h3 class="preco-final">${formatCurrency(pedido.total_final)}</h3>`;
+            if (pedido.desconto > 0) {
+                valorHtml = `<span class="preco-original">${formatCurrency(pedido.total_original)}</span> <span class="desconto-valor">(- ${formatCurrency(pedido.desconto)})</span> ${valorHtml}`;
+            }
+            return `
+                <div class="pedido-card">
+                    <div class="pedido-header">
+                        <h3>Pedido #${pedido.id}</h3>
+                        <span>${formatDate(pedido.data_solicitacao)}</span>
+                    </div>
+                    <p><strong>Cliente:</strong> ${clienteNome}</p>
+                    <ul class="pedido-servicos-list">
+                        ${pedido.servicos.map(s => `<li>${s.quantidade}x ${s.nome} <span>${formatCurrency(s.valor * s.quantidade)}</span></li>`).join('')}
+                    </ul>
+                    <div class="pedido-valores">${valorHtml}</div>
+                    <div class="pedido-status">
+                        <div class="status-group">
+                            <label>Pagamento:</label>
+                            <select class="status-select" data-id="${pedido.id}" data-type="pagamento">
+                                <option value="Pendente" ${pedido.status_pagamento === 'Pendente' ? 'selected' : ''}>Pendente</option>
+                                <option value="Pago" ${pedido.status_pagamento === 'Pago' ? 'selected' : ''}>Pago</option>
+                            </select>
+                        </div>
+                        <div class="status-group">
+                            <label>Entrega:</label>
+                            <select class="status-select" data-id="${pedido.id}" data-type="entrega">
+                                <option value="Pendente" ${pedido.status_entrega === 'Pendente' ? 'selected' : ''}>Pendente</option>
+                                <option value="Entregue" ${pedido.status_entrega === 'Entregue' ? 'selected' : ''}>Entregue</option>
+                            </select>
+                        </div>
+                        <div class="status-group">
+                            <label>Data Entrega:</label>
+                            <input type="date" class="data-entrega-input" data-id="${pedido.id}" value="${pedido.data_entrega ? pedido.data_entrega.split('T')[0] : ''}">
+                        </div>
+                    </div>
+                    <div class="pedido-actions">
+                        <button class="view-comprovante-btn" data-id="${pedido.id}">Ver Comprovante</button>
+                        <button class="delete-btn" data-id="${pedido.id}">Excluir Pedido</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        listaPedidos.addEventListener('change', async (e) => {
+            if (e.target.classList.contains('status-select')) {
+                const id = e.target.dataset.id;
+                const type = e.target.dataset.type;
+                const value = e.target.value;
+                let updateData = {};
+                if (type === 'pagamento') updateData = { status_pagamento: value };
+                else if (type === 'entrega') updateData = { status_entrega: value };
+
+                const { error } = await supabaseClient.from('pedidos').update(updateData).eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
+                if (error) showAlertError(error, `Erro ao atualizar status de ${type}.`);
+                else renderPedidos(); // Recarrega para mostrar o status atualizado
+            } else if (e.target.classList.contains('data-entrega-input')) {
+                const id = e.target.dataset.id;
+                const value = e.target.value; // Formato YYYY-MM-DD
+                // Para garantir que o Supabase interprete como UTC para compatibilidade
+                const dateUTC = value ? new Date(value + 'T00:00:00Z').toISOString() : null;
+
+                const { error } = await supabaseClient.from('pedidos').update({ data_entrega: dateUTC }).eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
+                if (error) showAlertError(error, 'Erro ao atualizar data de entrega.');
+                else renderPedidos();
+            }
+        });
+
+        listaPedidos.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('delete-btn') && confirm('Tem certeza que deseja excluir este pedido?')) {
+                const id = e.target.dataset.id;
+                const { error } = await supabaseClient.from('pedidos').delete().eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
+                if (error) showAlertError(error, 'Erro ao excluir pedido.');
+                else await renderPedidos();
+            }
+            if (e.target.classList.contains('view-comprovante-btn')) {
+                const pedidoId = e.target.dataset.id;
+                await renderComprovanteModal(pedidoId);
+            }
+        });
+
+        // --- LÓGICA DO RELATÓRIO ---
+        const corpoTabelaRelatorio = document.getElementById('corpo-tabela-relatorio');
+        const listaResumoPendencias = document.getElementById('lista-resumo-pendencias');
+
+        async function renderRelatorio() {
+            showLoading(corpoTabelaRelatorio);
+            showLoading(listaResumoPendencias);
+
+            const trintaDiasAtras = new Date();
+            trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+            const dataMinima = trintaDiasAtras.toISOString();
+
+            // Filtra por company_id se não for admin
+            let query = supabaseClient
+                .from('pedidos')
+                .select('*, clientes(nome)')
+                .gte('data_solicitacao', dataMinima)
+                .order('data_solicitacao', { ascending: false });
+
+            if (currentUserRole !== 'admin' && currentUserCompanyId) {
+                query = query.eq('company_id', currentUserCompanyId);
+            }
+
+            const { data: pedidos, error } = await query;
+
+            if (error) {
+                showAlertError(error, 'Não foi possível carregar o relatório.');
+                corpoTabelaRelatorio.innerHTML = '<tr><td colspan="7">Erro ao carregar o relatório.</td></tr>';
+                listaResumoPendencias.innerHTML = '';
+                return;
+            }
+
+            if (pedidos.length === 0) {
+                corpoTabelaRelatorio.innerHTML = '<tr><td colspan="7">Nenhum pedido encontrado nos últimos 30 dias.</td></tr>';
+            } else {
+                corpoTabelaRelatorio.innerHTML = pedidos.map(pedido => `
+                    <tr>
+                        <td>#${pedido.id}</td>
+                        <td>${pedido.clientes ? pedido.clientes.nome : 'Cliente Removido'}</td>
+                        <td>${formatDate(pedido.data_solicitacao)}</td>
+                        <td>${formatDate(pedido.data_entrega)}</td>
+                        <td>${formatCurrency(pedido.total_final)}</td>
+                        <td>${pedido.status_pagamento}</td>
+                        <td>${pedido.status_entrega}</td>
+                    </tr>
+                `).join('');
+            }
+
+            // --- Resumo de Pendências ---
+            const resumoPendencias = {};
+
+            pedidos.forEach(pedido => {
+                if (pedido.status_pagamento === 'Pendente') {
+                    const clienteNome = pedido.clientes ? pedido.clientes.nome : 'Cliente Removido';
+                    if (!resumoPendencias[clienteNome]) {
+                        resumoPendencias[clienteNome] = { nome: clienteNome, totalPendente: 0, pedidos: [] };
+                    }
+                    resumoPendencias[clienteNome].totalPendente += pedido.total_final;
+                    resumoPendencias[clienteNome].pedidos.push(pedido);
+                }
+            });
+
+            const clientesComPendencia = Object.values(resumoPendencias).sort((a, b) => {
+                const nomeA = a.nome.toLowerCase(); 
+                const nomeB = b.nome.toLowerCase();
+                if (nomeA < nomeB) return -1;
+                if (nomeA > nomeB) return 1;
+                return 0;
+            });
+
+            if (clientesComPendencia.length === 0) {
+                listaResumoPendencias.innerHTML = '<p>Nenhum valor pendente.</p>';
+            } else {
+                listaResumoPendencias.innerHTML = clientesComPendencia.map(cliente => `
+                    <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-radius: 5px; background-color: #f9f9f9;">
+                        <strong>${cliente.nome}:</strong> ${formatCurrency(cliente.totalPendente)} em ${cliente.pedidos.length} pedido(s) pendente(s).
+                        <ul style="list-style: disc; padding-left: 20px; margin-top: 5px;">
+                            ${cliente.pedidos.map(p => `<li>Pedido #${p.id} (${formatDate(p.data_solicitacao)}): ${formatCurrency(p.total_final)}</li>`).join('')}
+                        </ul>
+                    </div>
+                `).join('');
+            }
+        }
+
+        document.getElementById('exportar-relatorio-pdf').addEventListener('click', async () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'pt', 'a4');
+            const element = document.getElementById('relatorio-tab'); // Captura a aba inteira do relatório
+
+            // Adiciona um título ao PDF
+            doc.setFontSize(18);
+            doc.text("Relatório de Pedidos", 40, 40);
+
+            // Renderiza o HTML para canvas e depois para PDF
+            html2canvas(element, { 
+                scale: 2, // Aumenta a escala para melhor qualidade
+                useCORS: true, // Importante se tiver imagens ou recursos de outras origens
+                allowTaint: true 
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = 595; // Largura A4 em pt
+                const pageHeight = 842; // Altura A4 em pt
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 60; // Posição inicial abaixo do título
+
+                doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    doc.addPage();
+                    doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                doc.save('relatorio_pedidos.pdf');
+            }).catch(error => {
+                console.error('Erro ao gerar PDF:', error);
+                alert('Ocorreu um erro ao gerar o PDF do relatório. Verifique o console.');
+            });
+        });
+
+        // --- Lógica do Comprovante Modal ---
+        const comprovanteModal = document.getElementById('comprovante-modal');
+        const comprovanteContainer = document.getElementById('comprovante-container');
+        const fecharModalBtn = document.getElementById('fechar-modal');
+        const exportComprovantePngBtn = document.getElementById('export-comprovante-png');
+        const exportComprovantePdfBtn = document.getElementById('export-comprovante-pdf');
+        let currentPedidoParaComprovante = null; // Para guardar os dados do pedido atual do comprovante
+
+        async function renderComprovanteModal(pedidoId) {
+            const { data: pedido, error } = await supabaseClient
+                .from('pedidos')
+                .select('*, clientes(nome, email, telefone)')
+                .eq('id', pedidoId)
+                .single();
+
+            if (error || !pedido) {
+                showAlertError(error, 'Não foi possível carregar os detalhes do pedido para o comprovante.');
+                return;
+            }
+
+            currentPedidoParaComprovante = pedido; // Salva o pedido para exportação
+
+            const cliente = pedido.clientes;
+            const dataSolicitacao = formatDate(pedido.data_solicitacao);
+            const dataEntrega = formatDate(pedido.data_entrega);
+
+            let servicosHtml = pedido.servicos.map(s => `
+                <li>
+                    <span>${s.quantidade}x ${s.nome}</span>
+                    <span>${s.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} cada</span>
+                    <span>${(s.valor * s.quantidade).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                </li>
+            `).join('');
+
+            comprovanteContainer.innerHTML = `
+                <h3>Detalhes do Pedido #${pedido.id}</h3>
+                <p><strong>Cliente:</strong> ${cliente ? cliente.nome : 'N/A'}</p>
+                <p><strong>Email:</strong> ${cliente ? cliente.email || 'N/A' : 'N/A'}</p>
+                <p><strong>Telefone:</strong> ${cliente ? cliente.telefone || 'N/A' : 'N/A'}</p>
+                <p><strong>Data da Solicitação:</strong> ${dataSolicitacao}</p>
+                <p><strong>Data da Entrega:</strong> ${dataEntrega}</p>
+                <hr>
+                <h4>Serviços:</h4>
+                <ul class="pedido-servicos-list">
+                    ${servicosHtml}
+                </ul>
+                <hr>
+                <p><strong>Total Original:</strong> ${formatCurrency(pedido.total_original)}</p>
+                <p><strong>Desconto:</strong> ${formatCurrency(pedido.desconto)}</p>
+                <h3><strong>Total Final:</strong> ${formatCurrency(pedido.total_final)}</h3>
+                <p><strong>Status Pagamento:</strong> ${pedido.status_pagamento}</p>
+                <p><strong>Status Entrega:</strong> ${pedido.status_entrega}</p>
+            `;
+            comprovanteModal.style.display = 'flex';
+        }
+
+        fecharModalBtn.addEventListener('click', () => {
+            comprovanteModal.style.display = 'none';
+            currentPedidoParaComprovante = null;
+        });
+
+        exportComprovantePngBtn.addEventListener('click', () => {
+            if (!currentPedidoParaComprovante) return;
+            html2canvas(comprovanteContainer, { scale: 2, useCORS: true, allowTaint: true }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `comprovante_pedido_${currentPedidoParaComprovante.id}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }).catch(error => {
+                console.error('Erro ao exportar PNG:', error);
+                alert('Ocorreu um erro ao exportar o comprovante como PNG.');
+            });
+        });
+
+        exportComprovantePdfBtn.addEventListener('click', () => {
+            if (!currentPedidoParaComprovante) return;
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'pt', 'a4');
+            
+            html2canvas(comprovanteContainer, { scale: 2, useCORS: true, allowTaint: true }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = 595; // A4 width in pts
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                
+                doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                doc.save(`comprovante_pedido_${currentPedidoParaComprovante.id}.pdf`);
+            }).catch(error => {
+                console.error('Erro ao exportar PDF:', error);
+                alert('Ocorreu um erro ao exportar o comprovante como PDF.');
+            });
+        });
+
+        // --- LÓGICA DE EMPRESAS (ADMIN APENAS) ---
+        const formEmpresa = document.getElementById('form-empresa');
+        const listaEmpresas = document.getElementById('lista-empresas');
+        const empresaUsuarioSelect = document.getElementById('empresa-usuario'); // Select de empresa na criação de usuário
+
+        async function renderEmpresas() {
+            console.log('[renderEmpresas] Função chamada.'); // Log de entrada
+            if (currentUserRole !== 'admin') {
+                listaEmpresas.innerHTML = '<p>Você não tem permissão para visualizar empresas.</p>';
+                console.log('[renderEmpresas] Usuário não é admin, acesso negado.'); // Log de permissão
+                return;
+            }
+            showLoading(listaEmpresas);
+            console.log('[renderEmpresas] Tentando carregar empresas do Supabase...'); // Log de carregamento
+            const { data, error } = await supabaseClient.from('companies').select('*').order('name', { ascending: true });
+            if (error) {
+                showAlertError(error, 'Não foi possível carregar as empresas.');
+                listaEmpresas.innerHTML = '';
+                console.error('[renderEmpresas] Erro ao carregar empresas:', error); // Log de erro
+                return;
+            }
+            empresasCache = data; // Atualiza o cache de empresas
+            console.log('[renderEmpresas] Empresas carregadas e cache atualizado:', empresasCache); // Log de dados carregados
+            
+            let empresasHtml = '';
+            if (data.length === 0) {
+                empresasHtml = '<p>Nenhuma empresa cadastrada ainda.</p>';
+            } else {
+                empresasHtml = data.map(empresa => `
+                    <div class="item-card">
+                        <div><strong>${empresa.name}</strong><br><small>ID: ${empresa.id}</small></div>
+                        <button class="delete-btn" data-id="${empresa.id}">Excluir</button>
+                    </div>
+                `).join('');
+            }
+            console.log('[renderEmpresas] HTML gerado para empresas:', empresasHtml); // Log do HTML gerado
+            if (listaEmpresas) {
+                listaEmpresas.innerHTML = empresasHtml;
+                console.log('[renderEmpresas] listaEmpresas.innerHTML atualizado.'); // Log de atualização do DOM
+                console.log('[renderEmpresas] listaEmpresas offsetWidth:', listaEmpresas.offsetWidth, 'offsetHeight:', listaEmpresas.offsetHeight); // Log de dimensões
+            } else {
+                console.warn('[renderEmpresas] Elemento listaEmpresas não encontrado no DOM.'); // Aviso se o elemento não for encontrado
+            }
+            updateEmpresaSelectOptions(); // Atualiza o select de empresas para usuários
+        }
+
+        formEmpresa.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (currentUserRole !== 'admin') { alert('Permissão negada.'); return; }
+
+            const btn = document.getElementById('btn-add-empresa');
+            btn.disabled = true;
+            btn.textContent = 'Adicionando...';
+
+            const nomeEmpresa = document.getElementById('nome-empresa').value;
+            
+            // Chamada RPC para criar a empresa e associar o admin
+            const { data, error } = await supabaseClient.rpc('create_new_company', { company_name: nomeEmpresa });
+
+            if (error) {
+                showAlertError(error, 'Erro ao adicionar empresa.');
+            } else {
+                formEmpresa.reset();
+                alert(`Empresa "${nomeEmpresa}" criada com sucesso! ID: ${data.company_id}`);
+                await renderEmpresas();
+            }
+            btn.disabled = false;
+            btn.textContent = 'Adicionar Empresa';
+        });
+
+        listaEmpresas.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('delete-btn') && currentUserRole === 'admin') {
+                if (confirm('Tem certeza que deseja excluir esta empresa? Isso removerá TODOS os dados associados a ela (usuários, clientes, serviços, pedidos)! Esta ação é irreversível!')) {
+                    const id = e.target.dataset.id;
+                    const { error } = await supabaseClient.from('companies').delete().eq('id', id);
+                    if (error) showAlertError(error, 'Erro ao excluir empresa.');
+                    else await renderEmpresas();
+                }
+            }
+        });
+
+        function updateEmpresaSelectOptions() {
+            console.log('[updateEmpresaSelectOptions] Função chamada.'); // Log de entrada
+            console.log('[updateEmpresaSelectOptions] Conteúdo de empresasCache:', empresasCache); // Log do cache
+            // CORREÇÃO: Verifica se o `empresaUsuarioSelect` existe antes de manipular seu `innerHTML`
+            if (empresaUsuarioSelect) {
+                const optionsHtml = '<option value="">Selecione uma empresa</option>' + empresasCache.map(empresa => `<option value="${empresa.id}">${empresa.name}</option>`).join('');
+                empresaUsuarioSelect.innerHTML = optionsHtml;
+                console.log('[updateEmpresaSelectOptions] empresaUsuarioSelect.innerHTML atualizado para:', optionsHtml); // Log do HTML do select
+            } else {
+                console.warn('[updateEmpresaSelectOptions] Elemento empresaUsuarioSelect não encontrado no DOM.'); // Aviso se o elemento não for encontrado
+            }
+        }
+
+
+        // --- LÓGICA DE USUÁRIOS (ADMIN APENAS) ---
+        const formUsuario = document.getElementById('form-usuario');
+        const listaUsuarios = document.getElementById('lista-usuarios');
+
+        async function renderUsuarios() {
+            console.log('[renderUsuarios] Função chamada.'); // Log de entrada
+            if (currentUserRole !== 'admin') {
+                listaUsuarios.innerHTML = '<p>Você não tem permissão para visualizar usuários.</p>';
+                console.log('[renderUsuarios] Usuário não é admin, acesso negado.'); // Log de permissão
+                return;
+            }
+            showLoading(listaUsuarios);
+            console.log('[renderUsuarios] Tentando carregar usuários do Supabase...'); // Log de carregamento
+            const { data, error } = await supabaseClient.from('profiles').select('*, companies(name)').order('email', { ascending: true });
+            if (error) {
+                showAlertError(error, 'Não foi possível carregar os usuários.');
+                listaUsuarios.innerHTML = '';
+                console.error('[renderUsuarios] Erro ao carregar usuários:', error); // Log de erro
+                return;
+            }
+            console.log('[renderUsuarios] Usuários carregados:', data); // Log de dados carregados
+            
+            let usuariosHtml = '';
+            if (data.length === 0) {
+                usuariosHtml = '<p>Nenhum usuário cadastrado ainda.</p>';
+            } else {
+                usuariosHtml = data.map(usuario => `
+                    <div class="item-card">
+                        <div>
+                            <strong>${usuario.email}</strong><br>
+                            <small>Nome: ${usuario.full_name || 'N/A'}</small><br>
+                            <small>Permissão: ${usuario.role}</small><br>
+                            <small>Empresa: ${usuario.companies ? usuario.companies.name : 'N/A'}</small>
+                        </div>
+                        <button class="delete-btn" data-id="${usuario.id}">Excluir</button>
+                    </div>
+                `).join('');
+            }
+            console.log('[renderUsuarios] HTML gerado para usuários:', usuariosHtml); // Log do HTML gerado
+            if (listaUsuarios) {
+                listaUsuarios.innerHTML = usuariosHtml;
+                console.log('[renderUsuarios] listaUsuarios.innerHTML atualizado.'); // Log de atualização do DOM
+                console.log('[renderUsuarios] listaUsuarios offsetWidth:', listaUsuarios.offsetWidth, 'offsetHeight:', listaUsuarios.offsetHeight); // Log de dimensões
+            } else {
+                console.warn('[renderUsuarios] Elemento listaUsuarios não encontrado no DOM.'); // Aviso se o elemento não for encontrado
+            }
+            // Recarrega as empresas para o select de usuário
+            await renderEmpresas(); 
+        }
+
+        formUsuario.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (currentUserRole !== 'admin') { alert('Permissão negada.'); return; }
+
+            const btn = document.getElementById('btn-add-usuario');
+            btn.disabled = true;
+            btn.textContent = 'Processando...';
+
+            const email = document.getElementById('email-usuario').value;
+            const password = document.getElementById('senha-usuario').value;
+            const fullName = document.getElementById('nome-completo-usuario').value;
+            const role = document.getElementById('role-usuario').value;
+            const companyId = document.getElementById('empresa-usuario').value;
+
+            if (!companyId) {
+                alert('Por favor, selecione uma empresa para o novo usuário.');
                 btn.disabled = false;
                 btn.textContent = 'Adicionar Usuário';
                 return;
             }
 
-            const userId = authData.user.id;
+            try {
+                // Primeiro, cria o usuário na autenticação do Supabase
+                const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
+                    email: email,
+                    password: password,
+                    email_confirm: true // Opcional: envia email de confirmação
+                });
 
-            // Em seguida, cria o perfil na tabela 'profiles' usando a função RPC
-            const { error: rpcError } = await supabaseClient.rpc('create_profile_for_user', {
-                user_id: userId,
-                user_email: email,
-                user_role: role,
-                user_company_id: companyId,
-                full_name: fullName
-            });
+                if (authError) {
+                    showAlertError(authError, 'Erro ao criar usuário na autenticação.');
+                    btn.disabled = false;
+                    btn.textContent = 'Adicionar Usuário';
+                    return;
+                }
 
-            if (rpcError) {
-                showAlertError(rpcError, 'Erro ao criar perfil do usuário. O usuário na autenticação será removido.');
-                // Se o perfil falhar, tente reverter a criação do usuário na autenticação
-                await supabaseClient.auth.admin.deleteUser(userId);
-                console.error('Usuário de autenticação revertido devido a falha na criação do perfil.');
-            } else {
-                alert('Usuário e perfil criados com sucesso!');
-                formUsuario.reset();
-                await renderUsuarios();
+                const userId = authData.user.id;
+
+                // Em seguida, cria o perfil na tabela 'profiles' usando a função RPC
+                const { error: rpcError } = await supabaseClient.rpc('create_profile_for_user', {
+                    user_id: userId,
+                    user_email: email,
+                    user_role: role,
+                    user_company_id: companyId,
+                    full_name: fullName
+                });
+
+                if (rpcError) {
+                    showAlertError(rpcError, 'Erro ao criar perfil do usuário. O usuário na autenticação será removido.');
+                    // Se o perfil falhar, tente reverter a criação do usuário na autenticação
+                    await supabaseClient.auth.admin.deleteUser(userId);
+                    console.error('Usuário de autenticação revertido devido a falha na criação do perfil.');
+                } else {
+                    alert('Usuário e perfil criados com sucesso!');
+                    formUsuario.reset();
+                    await renderUsuarios();
+                }
+            } catch (err) {
+                showAlertError(err, 'Ocorreu um erro inesperado ao criar o usuário.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Adicionar Usuário';
             }
-        } catch (err) {
-            showAlertError(err, 'Ocorreu um erro inesperado ao criar o usuário.');
-        } finally {
-            btn.disabled = false;
-            btn.textContent = 'Adicionar Usuário';
-        }
-    });
+        });
 
-    listaUsuarios.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('delete-btn') && currentUserRole === 'admin') {
-            if (confirm('Tem certeza que deseja excluir este usuário? Isso removerá o acesso e o perfil dele. Esta ação é irreversível!')) {
-                const id = e.target.dataset.id;
-                const { error } = await supabaseClient.auth.admin.deleteUser(id); // Exclui da autenticação, o trigger deve cuidar do perfil
-                if (error) showAlertError(error, 'Erro ao excluir usuário.');
-                else await renderUsuarios();
+        listaUsuarios.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('delete-btn') && currentUserRole === 'admin') {
+                if (confirm('Tem certeza que deseja excluir este usuário? Isso removerá o acesso e o perfil dele. Esta ação é irreversível!')) {
+                    const id = e.target.dataset.id;
+                    const { error } = await supabaseClient.auth.admin.deleteUser(id); // Exclui da autenticação, o trigger deve cuidar do perfil
+                    if (error) showAlertError(error, 'Erro ao excluir usuário.');
+                    else await renderUsuarios();
+                }
             }
-        }
-    });
-
-
-}); // Fim do waitForSupabase
+        });
+    }); // Fim do waitForSupabase
 </script>
 
 </body>
