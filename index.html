@@ -1,12 +1,11 @@
-<!DOCTYPE html>
+DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Gerenciamento de Pedidos</title>
 
-    <!-- CDNs para Supabase, jsPDF e html2canvas -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- CDNs para jsPDF e html2canvas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
@@ -230,9 +229,21 @@
         </div>
     </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
+<!-- Inclui o Supabase JS CDN primeiro e sem defer/async -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<script>
+// Função de polling para esperar que o Supabase esteja definido
+function waitForSupabase(callback) {
+    if (typeof window.supabase !== 'undefined') { // Mudança aqui para window.supabase
+        callback();
+    } else {
+        setTimeout(() => waitForSupabase(callback), 100); // Tenta novamente em 100ms
+    }
+}
+
+// Toda a sua lógica JavaScript será executada APENAS quando Supabase estiver pronto
+waitForSupabase(() => {
     // =================================================================================
     // ================== CONFIGURAÇÃO DO SUPABASE (SUAS CHAVES REAIS) =================
     // =================================================================================
@@ -618,7 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         // Garante que a comparação seja entre strings (UUIDs)
-        const servico = servicosCache.find(s => String(s.id) === String(servicoId)); 
+        const servico = servicosCache.find(s => String(item.id) === String(servicoId)); 
         
         if (servico) {
             console.log('Serviço encontrado no cache:', servico);
@@ -1330,7 +1341,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 
-}); // Fim do DOMContentLoaded
+}); // Fim do waitForSupabase
 </script>
 
 </body>
