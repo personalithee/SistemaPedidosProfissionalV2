@@ -210,15 +210,13 @@
             const adminMainPanel = document.getElementById('admin-main-panel');
             const adminUserEmailDisplay = document.getElementById('admin-user-email-display');
             const adminUserRoleDisplay = document.getElementById('admin-user-role-display');
-            // A variável adminLogoutBtn não é mais 'const' e será atribuída dinamicamente
             let adminLogoutBtn; 
             const backToMainAppPanelBtn = document.getElementById('back-to-main-app-panel');
 
             const companiesSection = document.getElementById('companies-section');
             const usersSection = document.getElementById('users-section');
 
-            // Estes botões estão na navegação, que está sempre presente, então seus listeners podem ser anexados no DOMContentLoaded
-            const navButtons = document.querySelectorAll('.admin-nav button'); // Seleciona todos os botões de navegação
+            const navButtons = document.querySelectorAll('.admin-nav button'); 
             const showCompaniesBtn = document.querySelector('.nav-btn[data-tab="companies"]');
             const showUsersBtn = document.querySelector('.nav-btn[data-tab="users"]');
 
@@ -256,7 +254,7 @@
                         adminLoginBtn.textContent = 'Entrar como Admin';
                     } else {
                         showAdminMessage('Login realizado com sucesso! Carregando painel...', 'success');
-                        await checkAdminAuthAndDisplayPanel(); // Inicia o painel se for admin
+                        await checkAdminAuthAndDisplayPanel(); 
                     }
                 } catch (err) {
                     showAdminMessage('Ocorreu um erro inesperado. Tente novamente.', 'error');
@@ -270,7 +268,6 @@
             async function checkAdminAuthAndDisplayPanel() {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) {
-                    // Se não houver usuário logado, mostra a tela de login do admin
                     adminLoginScreen.style.display = 'flex';
                     adminMainPanel.style.display = 'none';
                     return;
@@ -285,13 +282,12 @@
                 if (error || !profile || profile.role !== 'admin') {
                     console.error('Acesso negado. Usuário não é administrador ou perfil não encontrado.', error);
                     alert('Acesso negado. Você não tem permissão para acessar o Painel Administrativo.');
-                    await supabase.auth.signOut(); // Força o logout se não for admin
-                    adminLoginScreen.style.display = 'flex'; // Volta para a tela de login do admin
+                    await supabase.auth.signOut(); 
+                    adminLoginScreen.style.display = 'flex'; 
                     adminMainPanel.style.display = 'none';
                     return;
                 }
 
-                // Se for admin, exibe o painel
                 currentUserCompanyId = profile.company_id;
                 currentUserRole = profile.role;
                 adminUserEmailDisplay.textContent = profile.email;
@@ -302,8 +298,6 @@
                 adminLoginScreen.style.display = 'none';
                 adminMainPanel.style.display = 'block';
 
-                // IMPORTANTE: Obtenha a referência ao botão de logout *após* o painel ser exibido
-                // E anexe o listener apenas uma vez
                 if (!isLogoutListenerAttached) {
                     adminLogoutBtn = document.getElementById('admin-logout-btn');
                     if (adminLogoutBtn) {
@@ -314,9 +308,8 @@
                     }
                 }
 
-                // Carrega dados iniciais para a aba ativa (Empresas por padrão)
                 loadCompanies();
-                loadUsers(); // Carrega usuários e empresas para o select de usuário
+                loadUsers(); 
             }
 
             async function handleAdminLogout() {
@@ -328,7 +321,7 @@
                     adminLoginScreen.style.display = 'flex';
                     adminMainPanel.style.display = 'none';
                     showAdminMessage('Você foi desconectado do Painel Administrativo.', 'success');
-                    isLogoutListenerAttached = false; // Reseta a flag ao fazer logout
+                    isLogoutListenerAttached = false; 
                 }
             }
 
@@ -338,7 +331,6 @@
                 usersSection.style.display = 'none';
                 sectionToShow.style.display = 'block';
 
-                // Ativa o botão de navegação correspondente
                 navButtons.forEach(btn => {
                     if (btn.dataset.tab === sectionToShow.id.replace('-section', '')) {
                         btn.classList.add('active');
@@ -350,19 +342,19 @@
 
             showCompaniesBtn.addEventListener('click', () => {
                 showAdminSection(companiesSection);
-                loadCompanies(); // Recarrega empresas ao mostrar a aba
+                loadCompanies(); 
             });
             showUsersBtn.addEventListener('click', () => {
                 showAdminSection(usersSection);
-                loadUsers(); // Recarrega usuários ao mostrar a aba
-                loadCompaniesForUserSelect(); // Recarrega empresas para o select de usuário
+                loadUsers(); 
+                loadCompaniesForUserSelect(); 
             });
 
             backToMainAppLoginBtn.addEventListener('click', () => {
-                window.location.href = 'index.html'; // Redireciona para a página principal
+                window.location.href = 'index.html'; 
             });
             backToMainAppPanelBtn.addEventListener('click', () => {
-                window.location.href = 'index.html'; // Redireciona para a página principal
+                window.location.href = 'index.html'; 
             });
 
             // --- Funções CRUD para Gerenciamento de Empresas ---
@@ -371,20 +363,25 @@
                 const { data, error } = await supabase
                     .from('companies')
                     .select('*')
-                    .order('name', { ascending: true }); // Ordena por nome
+                    .order('name', { ascending: true }); 
 
                 if (error) {
                     console.error('[loadCompanies] Erro ao carregar empresas:', error.message);
                     alert('Erro ao carregar empresas: ' + error.message);
                 } else {
+                    console.log('[loadCompanies] Dados recebidos do Supabase:', data); 
                     const companiesList = document.getElementById('companies-list');
-                    companiesList.innerHTML = '';
+                    if (!companiesList) {
+                        console.error('[loadCompanies] Elemento #companies-list não encontrado no DOM.');
+                        return;
+                    }
+                    companiesList.innerHTML = ''; 
                     if (data.length === 0) {
                         companiesList.innerHTML = '<p>Nenhuma empresa cadastrada ainda.</p>';
                         console.log('[loadCompanies] Nenhuma empresa encontrada.');
                         return;
                     }
-                    empresasCache = data; // Atualiza o cache de empresas
+                    empresasCache = data; 
                     data.forEach(company => {
                         const li = document.createElement('li');
                         li.innerHTML = `
@@ -399,8 +396,8 @@
                         companiesList.appendChild(li);
                     });
                     addCompanyActionListeners();
-                    loadCompaniesForUserSelect(); // Garante que o select de usuário seja atualizado
-                    console.log('[loadCompanies] Empresas carregadas com sucesso para a lista:', data);
+                    loadCompaniesForUserSelect(); 
+                    console.log('[loadCompanies] Empresas carregadas com sucesso para a lista. Total:', data.length); 
                 }
             }
 
@@ -418,7 +415,6 @@
                         .update({ name: companyName })
                         .eq('id', currentCompanyId);
                 } else {
-                    // Chama a função RPC para criar uma nova empresa
                     dbOperation = supabase.rpc('create_new_company', { company_name: companyName });
                 }
 
@@ -432,7 +428,7 @@
                     document.getElementById('company-form').reset();
                     delete e.target.dataset.editingId;
                     e.target.querySelector('button[type="submit"]').textContent = 'Criar Empresa';
-                    loadCompanies(); // Recarrega empresas para atualizar a lista e o select de usuários
+                    loadCompanies(); 
                 }
             });
 
@@ -467,7 +463,7 @@
                     alert('Erro ao excluir empresa: ' + error.message);
                 } else {
                     alert('Empresa excluída com sucesso!');
-                    loadCompanies(); // Recarrega empresas para atualizar a lista e o select de usuários
+                    loadCompanies(); 
                 }
             }
 
@@ -483,7 +479,6 @@
             // --- Funções CRUD para Gerenciamento de Usuários ---
             async function loadCompaniesForUserSelect() {
                 console.log('[loadCompaniesForUserSelect] Iniciando carregamento de empresas para o select de usuário...');
-                // Usa o cache de empresas já carregado por loadCompanies()
                 const data = empresasCache; 
 
                 const selectElement = document.getElementById('new-user-company-select');
@@ -507,7 +502,7 @@
                 const { data, error } = await supabase
                     .from('profiles')
                     .select('*, companies(name)')
-                    .order('email', { ascending: true }); // Ordena por email
+                    .order('email', { ascending: true }); 
 
                 if (error) {
                     console.error('Erro ao carregar usuários:', error.message);
@@ -562,18 +557,16 @@
 
                 let authOperation;
                 if (currentUserId) {
-                    // Atualiza o usuário existente no Auth
                     const updateData = { email: email };
-                    if (password) { // Só atualiza a senha se um valor for fornecido
+                    if (password) { 
                         updateData.password = password;
                     }
                     authOperation = supabase.auth.admin.updateUserById(currentUserId, updateData);
                 } else {
-                    // Cria um novo usuário no Auth
                     authOperation = supabase.auth.admin.createUser({
                         email: email,
                         password: password,
-                        email_confirm: true // Envia e-mail de confirmação
+                        email_confirm: true 
                     });
                 }
 
@@ -587,7 +580,6 @@
 
                 const userId = currentUserId || authData.user.id;
 
-                // Chama a função RPC para criar/atualizar o perfil
                 const { error: rpcError } = await supabase.rpc('create_profile_for_user', {
                     user_id: userId,
                     user_email: email,
@@ -599,7 +591,6 @@
                 if (rpcError) {
                     console.error('Erro ao criar/atualizar perfil via RPC:', rpcError.message);
                     alert('Erro ao criar/atualizar perfil do usuário: ' + rpcError.message);
-                    // Se falhar na criação do perfil, tenta reverter a criação do usuário no Auth (apenas para novas criações)
                     if (!currentUserId) {
                          await supabase.auth.admin.deleteUser(userId);
                          console.log('Usuário auth.users revertido devido a falha no perfil.');
@@ -609,7 +600,7 @@
                     document.getElementById('user-creation-form').reset();
                     delete e.target.dataset.editingId;
                     e.target.querySelector('button[type="submit"]').textContent = 'Criar Usuário';
-                    loadUsers(); // Recarrega a lista de usuários
+                    loadUsers(); 
                 }
             });
 
@@ -620,7 +611,6 @@
                 document.getElementById('new-user-company-select').value = companyId;
                 document.getElementById('user-creation-form').dataset.editingId = id;
                 document.getElementById('user-creation-form').querySelector('button[type="submit"]').textContent = 'Atualizar Usuário';
-                // O campo de senha não é preenchido por segurança, o usuário deve digitá-lo novamente se quiser alterar.
                 document.getElementById('new-user-password').value = ''; 
                 document.getElementById('new-user-password').placeholder = 'Deixe em branco para não alterar a senha';
             }
@@ -655,18 +645,13 @@
                 });
             }
 
-            // --- Inicialização do Painel Admin ---
-            // O listener do botão de logout foi movido para dentro de checkAdminAuthAndDisplayPanel
-            // para garantir que o elemento esteja disponível.
-            // Ele será anexado apenas uma vez usando a flag isLogoutListenerAttached.
+            adminLogoutBtn.addEventListener('click', handleAdminLogout);
 
-            // Listener para o evento de autenticação do Supabase
             supabase.auth.onAuthStateChange((event, session) => {
                 console.log('Auth event no Admin:', event, 'Session:', session);
-                checkAdminAuthAndDisplayPanel(); // Sempre verifica a autenticação ao carregar ou mudar o estado
+                checkAdminAuthAndDisplayPanel(); 
             });
 
-            // Chama a função de verificação de autenticação ao carregar a página
             checkAdminAuthAndDisplayPanel();
         });
     </script>
