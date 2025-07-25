@@ -194,6 +194,7 @@
             let currentUserCompanyId = null;
             let currentUserRole = null;
             let empresasCache = []; // Cache para empresas
+            let isLogoutListenerAttached = false; // Flag para evitar múltiplos listeners
 
             // --- Elementos do DOM (Login Admin) ---
             const adminLoginScreen = document.getElementById('admin-login-screen');
@@ -209,14 +210,17 @@
             const adminMainPanel = document.getElementById('admin-main-panel');
             const adminUserEmailDisplay = document.getElementById('admin-user-email-display');
             const adminUserRoleDisplay = document.getElementById('admin-user-role-display');
-            const adminLogoutBtn = document.getElementById('admin-logout-btn');
+            // A variável adminLogoutBtn não é mais 'const' e será atribuída dinamicamente
+            let adminLogoutBtn; 
             const backToMainAppPanelBtn = document.getElementById('back-to-main-app-panel');
 
             const companiesSection = document.getElementById('companies-section');
             const usersSection = document.getElementById('users-section');
 
-            const showCompaniesBtn = document.getElementById('show-companies');
-            const showUsersBtn = document.getElementById('show-users');
+            // Estes botões estão na navegação, que está sempre presente, então seus listeners podem ser anexados no DOMContentLoaded
+            const navButtons = document.querySelectorAll('.admin-nav button'); // Seleciona todos os botões de navegação
+            const showCompaniesBtn = document.querySelector('.nav-btn[data-tab="companies"]');
+            const showUsersBtn = document.querySelector('.nav-btn[data-tab="users"]');
 
             // --- Funções Auxiliares ---
             function showAdminMessage(text, type) {
@@ -298,6 +302,18 @@
                 adminLoginScreen.style.display = 'none';
                 adminMainPanel.style.display = 'block';
 
+                // IMPORTANTE: Obtenha a referência ao botão de logout *após* o painel ser exibido
+                // E anexe o listener apenas uma vez
+                if (!isLogoutListenerAttached) {
+                    adminLogoutBtn = document.getElementById('admin-logout-btn');
+                    if (adminLogoutBtn) {
+                        adminLogoutBtn.addEventListener('click', handleAdminLogout);
+                        isLogoutListenerAttached = true;
+                    } else {
+                        console.error('adminLogoutBtn não encontrado após a exibição do painel.');
+                    }
+                }
+
                 // Carrega dados iniciais para a aba ativa (Empresas por padrão)
                 loadCompanies();
                 loadUsers(); // Carrega usuários e empresas para o select de usuário
@@ -312,6 +328,7 @@
                     adminLoginScreen.style.display = 'flex';
                     adminMainPanel.style.display = 'none';
                     showAdminMessage('Você foi desconectado do Painel Administrativo.', 'success');
+                    isLogoutListenerAttached = false; // Reseta a flag ao fazer logout
                 }
             }
 
@@ -322,7 +339,7 @@
                 sectionToShow.style.display = 'block';
 
                 // Ativa o botão de navegação correspondente
-                document.querySelectorAll('.admin-nav button').forEach(btn => {
+                navButtons.forEach(btn => {
                     if (btn.dataset.tab === sectionToShow.id.replace('-section', '')) {
                         btn.classList.add('active');
                     } else {
@@ -639,7 +656,9 @@
             }
 
             // --- Inicialização do Painel Admin ---
-            adminLogoutBtn.addEventListener('click', handleAdminLogout);
+            // O listener do botão de logout foi movido para dentro de checkAdminAuthAndDisplayPanel
+            // para garantir que o elemento esteja disponível.
+            // Ele será anexado apenas uma vez usando a flag isLogoutListenerAttached.
 
             // Listener para o evento de autenticação do Supabase
             supabase.auth.onAuthStateChange((event, session) => {
