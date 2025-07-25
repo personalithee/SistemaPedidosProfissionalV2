@@ -3,1399 +3,1070 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gerenciamento de Pedidos</title>
-
-    <!-- CDNs para Supabase, jsPDF e html2canvas -->
+    <title>Sistema de Pedidos</title>
+    <!-- Inclui o Supabase JS CDN no head -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
     <style>
         /* ESTILOS GERAIS */
-        :root { --primary-color: #4a90e2; --secondary-color: #f5f7fa; --font-color: #333; --border-color: #ddd; --success-color: #28a745; --danger-color: #dc3545; --warning-color: #ffc107; --card-bg: #fff; --shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; background-color: var(--secondary-color); color: var(--font-color); margin: 0; padding: 0; }
-        h1, h2, h3 { color: var(--primary-color); }
+        :root {
+            --primary-color: #4a90e2; /* Azul para botões e títulos */
+            --secondary-color: #f5f7fa; /* Fundo claro */
+            --font-color: #333; /* Cor de texto principal */
+            --border-color: #ddd; /* Cor de borda para inputs */
+            --success-color: #28a745; /* Cor para mensagens de sucesso */
+            --danger-color: #dc3545; /* Cor para mensagens de erro */
+            --warning-color: #ffc107; /* Cor para botões de edição/aviso */
+            --card-bg: #fff; /* Fundo de cartões/containers */
+            --shadow: 0 2px 8px rgba(0,0,0,0.1); /* Sombra para elementos */
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--secondary-color);
+            color: var(--font-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        h1, h2, h3 {
+            color: var(--primary-color);
+        }
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 15px;
+            font-size: 16px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        button:hover {
+            transform: translateY(-1px);
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        input[type="text"], input[type="email"], input[type="password"], input[type="number"], textarea, select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        .message {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-size: 14px;
+            display: none; /* Oculto por padrão */
+        }
+        .message.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .message.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .message.info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
 
-        /* ESTILOS DA TELA DE LOGIN */
-        #login-screen { display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: var(--secondary-color); padding: 20px; box-sizing: border-box; }
-        .login-container { background-color: var(--card-bg); padding: 40px; border-radius: 8px; box-shadow: var(--shadow); width: 100%; max-width: 400px; text-align: center; }
-        .login-container h1 { margin-bottom: 30px; }
-        .login-container .form-group { margin-bottom: 20px; text-align: left; }
-        .login-container label { display: block; margin-bottom: 8px; font-weight: bold; }
-        .login-container input[type="email"], .login-container input[type="password"] { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 5px; font-size: 16px; box-sizing: border-box; }
-        .login-container button { width: 100%; padding: 12px; background-color: var(--primary-color); color: white; border: none; border-radius: 5px; font-size: 18px; cursor: pointer; transition: background-color 0.3s; margin-top: 20px; }
-        .login-container button:hover { background-color: #357abd; }
-        .login-container button:disabled { background-color: #ccc; cursor: not-allowed; }
-        .login-container .message { margin-top: 15px; padding: 10px; border-radius: 5px; font-size: 14px; }
-        .login-container .message.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .login-container .message.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        /* Estilos da Tela de Login (conforme a imagem) */
+        #auth-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: var(--secondary-color);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .auth-container {
+            background-color: var(--card-bg);
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+        }
+        .auth-container h1 { margin-bottom: 30px; font-size: 28px; }
+        .auth-container .form-group { margin-bottom: 20px; text-align: left; }
+        .auth-container label { display: block; margin-bottom: 8px; font-weight: bold; }
+        .auth-container button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .auth-container button:hover { background-color: #357abd; }
+        .auth-container .contact-message {
+            display: block;
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+        /* Mensagem de desconexão, semelhante à imagem */
+        .disconnected-message {
+            background-color: #d4edda; /* Verde claro */
+            color: #155724; /* Texto verde escuro */
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-size: 14px;
+            display: none; /* Oculto por padrão */
+        }
 
-        /* ESTILOS DO SISTEMA PRINCIPAL (CONTENT & ABAS) */
-        .container { max-width: 1200px; margin: 0 auto; background-color: var(--card-bg); border-radius: 8px; box-shadow: var(--shadow); overflow: hidden; padding: 20px; } /* Adicionado padding aqui */
-        nav { display: flex; background-color: var(--primary-color); position: relative; }
-        nav button { flex-grow: 1; padding: 15px 20px; border: none; background-color: var(--primary-color); color: white; font-size: 16px; cursor: pointer; transition: background-color 0.3s; border-bottom: 4px solid transparent; } /* Corrigido de 44px para 4px */
-        nav button:hover { background-color: #357abd; }
-        nav button.active { background-color: #357abd; border-bottom: 4px solid #fff; }
-        #logout-btn-nav { background-color: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); font-size: 14px; transition: background-color 0.3s; z-index: 10; }
-        #logout-btn-nav:hover { background-color: #c82333; }
-        .tab-content { display: none; padding: 25px; }
-        .tab-content.active { display: block; }
-        h2 { border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 20px; }
-        form { background-color: var(--secondary-color); padding: 20px; border-radius: 8px; margin-bottom: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
-        .form-group { display: flex; flex-direction: column; }
-        input, select, button, textarea { padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); font-size: 14px; } /* Adicionado textarea aqui */
-        button { cursor: pointer; background-color: var(--primary-color); color: white; border: none; transition: background-color 0.3s; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-        button.add-btn { background-color: var(--success-color); }
-        button.delete-btn { background-color: var(--danger-color); padding: 5px 10px; font-size: 12px; }
-        .item-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
-        .item-card, .pedido-card { background-color: var(--card-bg); padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
-        .pedido-card { padding: 20px; box-shadow: var(--shadow); }
-        .pedido-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; flex-wrap: wrap; }
-        .pedido-header h3 { margin: 0; }
-        .pedido-header span { font-size: 13px; color: #666; }
-        .pedido-servicos-list { list-style: none; padding-left: 0; margin-bottom: 15px; }
-        .pedido-servicos-list li { border-bottom: 1px dashed #eee; padding: 5px 0; display: flex; justify-content: space-between; }
-        .pedido-valores { text-align: right; margin-bottom: 15px; }
-        .pedido-valores .preco-original { text-decoration: line-through; color: #888; font-size: 14px; }
-        .pedido-valores .desconto-valor { color: var(--success-color); font-weight: bold; font-size: 14px; }
-        .pedido-valores .preco-final { font-size: 22px; font-weight: bold; color: var(--primary-color); }
-        .pedido-status, .pedido-actions { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
-        .status-group { display: flex; flex-direction: column; }
-        .status-group label { font-size: 12px; font-weight: bold; margin-bottom: 5px; }
-        #pedido-servicos-selecionados li { display: flex; justify-content: space-between; align-items: center; }
-        #total-pedido { font-size: 1.5em; font-weight: bold; margin-top: 10px; }
-        .loading { text-align: center; padding: 20px; font-style: italic; color: #888; }
-        .report-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        .report-table th, .report-table td { border: 1px solid var(--border-color); padding: 12px; text-align: left; }
-        .report-table th { background-color: var(--primary-color); color: white; }
-        .report-table tbody tr:nth-child(even) { background-color: var(--secondary-color); }
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background-color: white; padding: 30px; border-radius: 8px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
-        #comprovante-container { border: 1px solid #ccc; padding: 20px; margin-bottom: 20px; }
-        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
-        .cliente-grupo-pedidos { margin-bottom: 30px; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; background-color: var(--card-bg); }
-        .cliente-grupo-pedidos .item-list { grid-template-columns: 1fr; gap: 15px; }
+
+        /* Estilos do Aplicativo Principal */
+        #main-app {
+            display: none; /* Oculto por padrão */
+            max-width: 1200px;
+            margin: 20px auto;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        .app-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #357bd8;
+            flex-wrap: wrap; /* Permite quebrar em telas menores */
+        }
+        .app-header h1 { margin: 0; font-size: 24px; }
+        .app-header p { margin: 0; font-size: 14px; opacity: 0.9; }
+        .app-header button {
+            background-color: #dc3545;
+            color: white;
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+        .app-header button:hover { background-color: #c82333; }
+
+        .app-nav {
+            display: flex;
+            background-color: #5a9be2;
+            padding: 10px 30px;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            border-bottom: 1px solid #4a90e2;
+        }
+        .app-nav button {
+            background-color: #4a90e2;
+            color: white;
+            padding: 10px 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .app-nav button:hover { background-color: #357bd8; }
+        .app-nav button.active {
+            background-color: #357bd8;
+            border-bottom: 4px solid #fff;
+        }
+
+        .app-main {
+            padding: 30px;
+        }
+        .app-section {
+            margin-bottom: 40px;
+            background-color: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            display: none; /* Oculto por padrão */
+        }
+        .app-section.active {
+            display: block;
+        }
+        .app-section h2 {
+            color: #333;
+            font-size: 22px;
+            margin-top: 0;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .data-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            padding: 0;
+            list-style: none;
+        }
+        .data-list li {
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+        .data-list li strong {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .data-list li span {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        .data-list li div {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: flex-end;
+        }
+        .edit-btn { background-color: #ffc107; color: #333; }
+        .edit-btn:hover { background-color: #e0a800; }
+        .delete-btn { background-color: #dc3545; color: white; }
+        .delete-btn:hover { background-color: #c82333; }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #e9ecef;
+            border-radius: 8px;
+        }
+        .form-grid button[type="submit"] {
+            grid-column: 1 / -1;
+            background-color: #28a745;
+            color: white;
+            padding: 12px 20px;
+            font-size: 18px;
+        }
+        .form-grid button[type="submit"]:hover { background-color: #218838; }
+
+        /* Estilos específicos para a seção de relatórios */
+        #pending-values-summary {
+            background-color: #e9f7ef; /* Fundo mais claro para o resumo */
+            border: 1px solid #c3e6cb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        #pending-values-summary ul {
+            list-style: none;
+            padding: 0;
+        }
+        #pending-values-summary li {
+            padding: 8px 0;
+            border-bottom: 1px dashed #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #pending-values-summary li:last-child {
+            border-bottom: none;
+        }
+        #pending-values-summary li strong {
+            font-size: 16px;
+            color: #28a745; /* Cor para o valor total */
+        }
+        #reports-orders-list li {
+            /* Estilo para itens da lista de relatórios, sem botões de ação */
+            padding: 15px;
+            border: 1px solid #f0f0f0;
+            background-color: #ffffff;
+        }
+        #reports-orders-list li span {
+            margin-bottom: 0; /* Remove margem inferior se não houver botões */
+        }
+
+        /* Ajustes responsivos */
+        @media (max-width: 768px) {
+            .app-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            .app-nav {
+                justify-content: center;
+            }
+            .form-grid, .data-list {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
-<body> <!-- Removida a classe login-page daqui -->
-    <div id="login-screen">
-        <div class="login-container">
+<body>
+    <!-- Tela de Autenticação (Login) -->
+    <div id="auth-screen">
+        <div class="auth-container">
             <h1>Login no Sistema</h1>
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="email">E-mail:</label>
-                    <input type="email" id="email" required placeholder="seuemail@exemplo.com">
-                </div>
-                <div class="form-group">
-                    <label for="password">Senha:</label>
-                    <input type="password" id="password" required placeholder="••••••••">
-                </div>
-                <button type="submit" id="login-btn">Entrar</button>
-            </form>
-            <div id="message" class="message" style="display: none;"></div> <!-- Adicionado o div de mensagem -->
-            <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
-                Não tem uma conta? Entre em contato para criar seu acesso.
-            </p>
+            <div id="login-section">
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="login-email">E-mail:</label>
+                        <input type="email" id="login-email" required placeholder="seu@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Senha:</label>
+                        <input type="password" id="login-password" required placeholder="••••••••">
+                    </div>
+                    <button type="submit" id="login-btn">Entrar</button>
+                </form>
+                <div id="auth-message" class="message" style="display: none;"></div>
+                <div id="disconnected-message" class="disconnected-message">Você foi desconectado.</div>
+                <p class="contact-message">Não tem uma conta? Entre em contato para criar seu acesso.</p>
+            </div>
         </div>
     </div>
 
-    <div class="container" id="main-system" style="display: none;">
-        <header>
-            <h1>Bem-vindo ao Dashboard!</h1>
-            <p>Gerencie seus clientes, serviços e pedidos.</p>
-            <p>Usuário: <span id="user-email-display"></span> | Role: <span id="user-role-display"></span></p>
-            <button id="logout-btn-nav">Sair</button>
+    <!-- Aplicativo Principal (oculto inicialmente) -->
+    <div id="main-app">
+        <header class="app-header">
+            <h1>Sistema de Pedidos</h1>
+            <p>Bem-vindo(a), <span id="user-email-display"></span>! (<span id="user-role-display"></span>)</p>
+            <button id="logout-btn">Sair</button>
         </header>
 
-        <nav id="main-nav">
-            <button class="nav-btn active" data-tab="servicos">Serviços</button>
-            <button class="nav-btn" data-tab="clientes">Clientes</button>
-            <button class="nav-btn" data-tab="pedidos">Pedidos</button>
-            <button class="nav-btn" data-tab="relatorio">Relatório</button>
-            <button class="nav-btn admin-feature" data-tab="empresas" style="display: none;">Empresas</button>
-            <button class="nav-btn admin-feature" data-tab="usuarios" style="display: none;">Usuários</button>
+        <nav class="app-nav">
+            <button class="nav-btn active" data-tab="clients">Clientes</button>
+            <button class="nav-btn" data-tab="services">Serviços</button>
+            <button class="nav-btn" data-tab="orders">Pedidos</button>
+            <button class="nav-btn" data-tab="reports">Relatórios</button> <!-- Nova aba Relatórios -->
         </nav>
 
-        <div id="servicos-tab" class="tab-content active">
-            <h2>Gerenciar Serviços</h2>
-            <form id="form-servico">
-                <div class="form-group"><label for="nome-servico">Nome do Serviço</label><input type="text" id="nome-servico" required></div>
-                <div class="form-group"><label for="valor-servico">Valor (R$)</label><input type="number" id="valor-servico" step="0.01" min="0" required></div>
-                <!-- Novo campo de Descrição para Serviços -->
-                <div class="form-group" style="grid-column: 1 / -1;"><label for="descricao-servico">Descrição</label><textarea id="descricao-servico" rows="3"></textarea></div>
-                <button type="submit" id="btn-add-servico" style="grid-column: 1 / -1;">Adicionar Serviço</button>
-            </form>
-            <h3>Serviços Cadastrados</h3>
-            <div id="lista-servicos" class="item-list"></div>
-        </div>
-
-        <div id="clientes-tab" class="tab-content">
-            <h2>Gerenciar Clientes</h2>
-            <form id="form-cliente">
-                <div class="form-group"><label for="nome-cliente">Nome do Cliente</label><input type="text" id="nome-cliente" required></div>
-                <div class="form-group"><label for="email-cliente">Email</label><input type="email" id="email-cliente"></div>
-                <div class="form-group"><label for="telefone-cliente">Telefone</label><input type="tel" id="telefone-cliente"></div>
-                <!-- Novos campos para Clientes -->
-                <div class="form-group"><label for="endereco-cliente">Endereço</label><input type="text" id="endereco-cliente"></div>
-                <div class="form-group"><label for="cnpj-cpf-cliente">CNPJ/CPF</label><input type="text" id="cnpj-cpf-cliente"></div>
-                <div class="form-group"><label for="responsavel-cliente">Responsável</label><input type="text" id="responsavel-cliente"></div>
-                <button type="submit" id="btn-add-cliente" style="grid-column: 1 / -1;">Adicionar Cliente</button>
-            </form>
-            <h3>Clientes Cadastrados</h3>
-            <div id="lista-clientes" class="item-list"></div>
-        </div>
-
-        <div id="pedidos-tab" class="tab-content">
-            <h2>Criar Novo Pedido</h2>
-            <form id="form-pedido">
-                <div class="form-group" style="grid-column: 1 / -1;"><label for="cliente-pedido">Cliente</label><select id="cliente-pedido" required></select></div>
-                <div class="form-group" style="grid-column: 1 / -1; background: #fff; padding: 15px; border-radius: 5px;">
-                    <h4>Adicionar Serviços ao Pedido</h4>
-                    <div style="display: flex; gap: 10px; align-items: flex-end;">
-                        <div class="form-group" style="flex-grow: 3;"><label for="servico-pedido">Serviço</label><select id="servico-pedido"></select></div>
-                        <div class="form-group" style="flex-grow: 1;"><label for="quantidade-servico">Qtde.</label><input type="number" id="quantidade-servico" value="1" min="1"></div>
-                        <button type="button" id="add-servico-pedido-btn" class="add-btn">Adicionar</button>
-                    </div>
-                    <ul id="pedido-servicos-selecionados"></ul>
-                </div>
-                <div class="form-group"><label for="desconto-pedido">Desconto (R$)</label><input type="number" id="desconto-pedido" step="0.01" min="0" value="0"></div>
-                <div class="form-group" style="text-align: right;"><label>Valor Total</label><div id="total-pedido">R$ 0,00</div></div>
-                <button type="submit" id="btn-add-pedido" style="grid-column: 1 / -1;">Criar Pedido</button>
-            </form>
-            <h2>Pedidos Ativos</h2>
-            <div id="lista-pedidos" class="item-list"></div>
-        </div>
-
-        <div id="relatorio-tab" class="tab-content">
-            <h2>Relatório de Pedidos (Últimos 30 dias)</h2>
-            <button id="exportar-relatorio-pdf">Exportar Relatório para PDF</button>
-            
-            <div id="resumo-pendencias" style="margin-top: 20px; padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--secondary-color);">
-                <h3>Resumo de Valores Pendentes por Cliente</h3>
-                <div id="lista-resumo-pendencias">
-                    <p class="loading">Calculando pendências...</p>
-                </div>
-            </div>
-
-            <div id="relatorio-container">
-                <table class="report-table" id="tabela-relatorio">
-                    <thead><tr><th>ID Pedido</th><th>Cliente</th><th>Data Solicitação</th><th>Data Entrega</th><th>Valor Total</th><th>Status Pagamento</th><th>Status Entrega</th></tr></thead>
-                    <tbody id="corpo-tabela-relatorio"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Seção de Gerenciamento de Empresas (APENAS ADMIN) -->
-        <div id="empresas-tab" class="tab-content admin-only" style="display: none;">
-            <h2>Gerenciar Empresas</h2>
-            <form id="form-empresa">
-                <div class="form-group"><label for="nome-empresa">Nome da Empresa</label><input type="text" id="nome-empresa" required></div>
-                <button type="submit" id="btn-add-empresa" style="grid-column: 1 / -1;">Adicionar Empresa</button>
-            </form>
-            <h3>Empresas Cadastradas</h3>
-            <div id="lista-empresas" class="item-list"></div>
-        </div>
-
-        <!-- Seção de Gerenciamento de Usuários (APENAS ADMIN) -->
-        <div id="usuarios-tab" class="tab-content admin-only" style="display: none;">
-            <h2>Gerenciar Usuários</h2>
-            <form id="form-usuario">
-                <div class="form-group"><label for="email-usuario">Email</label><input type="email" id="email-usuario" required></div>
-                <div class="form-group"><label for="senha-usuario">Senha (deixe em branco para não alterar)</label><input type="password" id="senha-usuario"></div>
-                <div class="form-group"><label for="nome-completo-usuario">Nome Completo</label><input type="text" id="nome-completo-usuario"></div>
-                <div class="form-group"><label for="role-usuario">Permissão</label>
-                    <select id="role-usuario" required>
-                        <option value="user">Usuário</option>
-                        <option value="admin">Administrador</option>
-                    </select>
-                </div>
-                <div class="form-group"><label for="empresa-usuario">Empresa</label>
-                    <select id="empresa-usuario" required>
-                        <option value="">Selecione uma empresa</option>
-                    </select>
-                </div>
-                <button type="submit" id="btn-add-usuario" style="grid-column: 1 / -1;">Adicionar Usuário</button>
-            </form>
-            <h3>Usuários Cadastrados</h3>
-            <div id="lista-usuarios" class="item-list"></div>
-        </div>
-
-    </div>
-    <div class="modal-overlay" id="comprovante-modal">
-        <div class="modal-content">
-            <h2>Comprovante de Pedido</h2>
-            <div id="comprovante-container"></div>
-            <div class="modal-actions">
-                <button id="export-comprovante-png">Exportar PNG</button>
-                <button id="export-comprovante-pdf">Exportar PDF</button>
-                <button id="fechar-modal" class="delete-btn">Fechar</button>
-            </div>
-        </div>
-    </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-
-    // =================================================================================
-    // ================== CONFIGURAÇÃO DO SUPABASE (SUAS CHAVES REAIS) =================
-    // =================================================================================
-    const SUPABASE_URL = 'https://lwocvzymhkwvjlsarflf.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3b2N2enltaGt3dmpsc2FyZmxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxOTM1OTUsImV4cCI6MjA2ODc2OTU5NX0.ucW4LCE7bE_vKlHcGSP55By-Z5MVPCGv6vRaClr1lv4';
-    // =================================================================================
-    // =================================================================================
-    
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
-    const { jsPDF } = window.jspdf;
-
-    let servicosNoPedidoAtual = [];
-    let servicosCache = [];
-    let clientesCache = [];
-    let empresasCache = []; // Cache para empresas
-    let currentUserRole = 'guest'; // Padrão inicial antes da verificação
-    let currentUserCompanyId = null; // ID da empresa do usuário logado
-
-    // --- VARIÁVEIS E ELEMENTOS DA TELA DE LOGIN ---
-    const loginScreen = document.getElementById('login-screen');
-    const mainSystem = document.getElementById('main-system'); // Renomeado de dashboardSection para mainSystem
-    const loginForm = document.getElementById('login-form');
-    const emailInput = document.getElementById('email'); // Corrigido para 'email'
-    const passwordInput = document.getElementById('password'); // Corrigido para 'password'
-    const loginBtn = document.getElementById('login-btn');
-    const messageDiv = document.getElementById('message');
-
-    // --- Elementos do Dashboard (Adicionados) ---
-    const userEmailDisplay = document.getElementById('user-email-display'); // Obtido por ID
-    const userRoleDisplay = document.getElementById('user-role-display'); // Obtido por ID
-
-
-    // --- FUNÇÕES AUXILIARES ---
-    const formatCurrency = (value) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'N/A';
-    const showLoading = (listElement) => listElement.innerHTML = '<p class="loading">Carregando dados...</p>';
-    const showAlertError = (error, message = 'Ocorreu um erro ao comunicar com o banco de dados.') => {
-        console.error('Erro Supabase:', error);
-        alert(`${message}\nVerifique o console para mais detalhes.`);
-    };
-    function showMessage(text, type) {
-        messageDiv.textContent = text;
-        messageDiv.className = `message ${type}`;
-        messageDiv.style.display = 'block';
-    }
-
-    // --- LÓGICA DO FORMULÁRIO DE LOGIN ---
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        loginBtn.disabled = true;
-        loginBtn.textContent = 'Entrando...';
-        messageDiv.style.display = 'none';
-
-        const email = emailInput.value;
-        const password = passwordInput.value;
-
-        try {
-            const { data, error } = await supabaseClient.auth.signInWithPassword({
-                email: email,
-                password: password,
-            });
-
-            if (error) {
-                if (error.message.includes('Invalid login credentials')) {
-                    showMessage('Credenciais de login inválidas. Verifique seu e-mail e senha.', 'error');
-                } else {
-                    showMessage(`Erro ao fazer login: ${error.message}`, 'error');
-                }
-                console.error('Erro de login:', error);
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Entrar';
-            } else {
-                showMessage('Login realizado com sucesso! Carregando sistema...', 'success');
-                // Chame a função que inicializa o sistema após login
-                await initSystem(); 
-            }
-        } catch (err) {
-            showMessage('Ocorreu um erro inesperado. Tente novamente.', 'error');
-            console.error('Erro geral:', err);
-            loginBtn.disabled = false;
-            loginBtn.textContent = 'Entrar';
-        }
-    });
-
-    // --- NAVEGAÇÃO E CONTROLE DE ACESSO POR ROLE ---
-    const navButtons = document.querySelectorAll('.nav-btn');
-    const tabContents = document.querySelectorAll('.tab-content');
-    
-    const mainNav = document.getElementById('main-nav');
-    mainNav.addEventListener('click', handleNavClick);
-
-    function handleNavClick(e) {
-        if (e.target.tagName !== 'BUTTON') return;
-        const tabId = e.target.dataset.tab;
-
-        console.log(`[handleNavClick] Botão clicado: ${tabId}`); // Log de navegação
-
-        // Controle de acesso baseado na role
-        // Usuários com role 'user' só podem acessar 'servicos', 'clientes', 'pedidos', 'relatorio'
-        if (currentUserRole === 'user') {
-            if (tabId === 'empresas' || tabId === 'usuarios') {
-                alert('Você não tem permissão para acessar esta seção.');
-                console.warn(`[handleNavClick] Acesso negado para usuário comum na aba: ${tabId}`);
-                return;
-            }
-        }
-
-        navButtons.forEach(btn => btn.classList.remove('active'));
-        e.target.classList.add('active');
-        tabContents.forEach(content => {
-            const isActive = content.id === `${tabId}-tab`;
-            content.classList.toggle('active', isActive);
-            console.log(`[showSection] Exibindo ${content.id}: ${isActive ? 'block' : 'none'}`); // Log de exibição de seção
-        });
-        
-        // Renderiza o conteúdo da aba selecionada
-        if (tabId === 'relatorio') renderRelatorio();
-        else if (tabId === 'servicos') renderServicos();
-        else if (tabId === 'clientes') renderClientes();
-        else if (tabId === 'pedidos') renderPedidos();
-        else if (tabId === 'empresas') {
-            console.log('[handleNavClick] Chamando renderEmpresas para a aba Empresas.'); // Log específico
-            renderEmpresas(); 
-        }
-        else if (tabId === 'usuarios') {
-            console.log('[handleNavClick] Chamando renderUsuarios para a aba Usuários.'); // Log específico
-            renderUsuarios(); 
-        }
-    }
-
-    // Função de Logout
-    document.getElementById('logout-btn-nav').addEventListener('click', async () => {
-        const { error } = await supabaseClient.auth.signOut();
-        if (error) {
-            showAlertError(error, 'Erro ao fazer logout.');
-        } else {
-            currentUserRole = 'guest'; // Resetar a role
-            currentUserCompanyId = null; // Resetar company_id
-            loginScreen.style.display = 'flex';
-            mainSystem.style.display = 'none';
-            showMessage('Você foi desconectado.', 'success');
-            // Opcional: Recarregar a página para garantir estado limpo
-            // window.location.reload(); 
-        }
-    });
-
-    // Função para inicializar o sistema após o login ou ao carregar a página
-    async function initSystem() {
-        const { data: { user } } = await supabaseClient.auth.getUser();
-        if (user) {
-            loginScreen.style.display = 'none';
-            mainSystem.style.display = 'block';
-
-            // Buscar o perfil do usuário para determinar a role e company_id
-            const { data: profile, error } = await supabaseClient
-                .from('profiles')
-                .select('role, company_id, email') // Incluir email para display
-                .eq('id', user.id)
-                .single();
-
-            if (error) {
-                console.error('Erro ao buscar perfil:', error);
-                currentUserRole = 'user'; // Padrão seguro em caso de erro
-                currentUserCompanyId = null; // Garante que não há company_id inválido
-                userEmailDisplay.textContent = user.email; // Exibe o email da autenticação
-                userRoleDisplay.textContent = 'user (erro no perfil)';
-                console.log('Usuário logado com role: user (padrão devido a erro de perfil)');
-            } else {
-                currentUserRole = profile.role;
-                currentUserCompanyId = profile.company_id; 
-                userEmailDisplay.textContent = profile.email;
-                userRoleDisplay.textContent = profile.role;
-                console.log(`Usuário logado com role: ${currentUserRole}, Company ID: ${currentUserCompanyId}`);
-            }
-
-            // Renderiza a aba ativa inicialmente (Serviços por padrão)
-            const activeTabButton = document.querySelector('.nav-btn.active');
-            if (activeTabButton) {
-                const tabId = activeTabButton.dataset.tab;
-                tabContents.forEach(content => content.classList.toggle('active', content.id === `${tabId}-tab`));
-                // Dispara o carregamento dos dados da aba ativa
-                if (tabId === 'relatorio') renderRelatorio();
-                else if (tabId === 'servicos') renderServicos();
-                else if (tabId === 'clientes') renderClientes();
-                else if (tabId === 'pedidos') renderPedidos();
-                else if (tabId === 'empresas') renderEmpresas();
-                else if (tabId === 'usuarios') renderUsuarios();
-            } else {
-                // Se nenhuma aba estiver ativa (o que não deve acontecer), renderiza serviços
-                renderServicos();
-            }
-
-            // Exibir/ocultar botões de administração com base na role
-            document.querySelectorAll('.admin-feature').forEach(btn => {
-                if (currentUserRole === 'admin') {
-                    btn.style.display = 'block';
-                } else {
-                    btn.style.display = 'none';
-                }
-            });
-
-        } else {
-            loginScreen.style.display = 'flex';
-            mainSystem.style.display = 'none';
-        }
-    }
-
-    // Chame initSystem ao carregar a página para verificar o status de login
-    initSystem();
-
-    // --- LÓGICA DE SERVIÇOS ---
-    const formServico = document.getElementById('form-servico');
-    const listaServicos = document.getElementById('lista-servicos');
-
-    async function renderServicos() {
-        showLoading(listaServicos);
-        let query = supabaseClient.from('servicos').select('id, nome, valor, descricao, company_id').order('nome', { ascending: true });
-
-        // Se o usuário NÃO for admin, ele DEVE pertencer a uma empresa para ver dados.
-        if (currentUserRole !== 'admin') {
-            if (currentUserCompanyId) {
-                query = query.eq('company_id', currentUserCompanyId);
-            } else {
-                // Se usuário não é admin e não tem company_id, ele não deve ver dados.
-                listaServicos.innerHTML = '<p>Você não está associado a uma empresa. Por favor, entre em contato com o administrador para ter acesso aos serviços.</p>';
-                return; // Interrompe a função
-            }
-        }
-
-        const { data, error } = await query;
-        if (error) {
-            showAlertError(error, 'Não foi possível carregar os serviços.');
-            listaServicos.innerHTML = '';
-            return;
-        }
-        servicosCache = data;
-        listaServicos.innerHTML = data.map(servico => `
-            <div class="item-card">
-                <div>
-                    <strong>${servico.nome}</strong><br>
-                    <span>${formatCurrency(servico.valor)}</span>
-                    ${servico.descricao ? `<br><small>${servico.descricao}</small>` : ''}
-                </div>
-                <div>
-                    <button class="edit-btn" data-id="${servico.id}" data-type="servico">Editar</button>
-                    <button class="delete-btn" data-id="${servico.id}" data-type="servico">Excluir</button>
-                </div>
-            </div>
-        `).join('');
-        updatePedidoFormOptions();
-        addServicoActionListeners();
-    }
-
-    formServico.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('btn-add-servico');
-        btn.disabled = true;
-        btn.textContent = 'Adicionando...';
-
-        const nomeServico = document.getElementById('nome-servico').value;
-        let valorServico = parseFloat(document.getElementById('valor-servico').value);
-        const descricaoServico = document.getElementById('descricao-servico').value;
-
-        if (isNaN(valorServico)) {
-            showAlertError(null, 'O valor do serviço deve ser um número válido.');
-            btn.disabled = false;
-            btn.textContent = 'Adicionar Serviço';
-            return;
-        }
-
-        const editingId = formServico.dataset.editingId;
-
-        let dbOperation;
-        if (editingId) {
-            dbOperation = supabaseClient.from('servicos').update({ 
-                nome: nomeServico, 
-                valor: valorServico, 
-                descricao: descricaoServico 
-            }).eq('id', editingId).eq('company_id', currentUserCompanyId);
-        } else {
-            dbOperation = supabaseClient.from('servicos').insert([{ 
-                nome: nomeServico, 
-                valor: valorServico, 
-                descricao: descricaoServico, 
-                company_id: currentUserCompanyId 
-            }]);
-        }
-        
-        const { error } = await dbOperation;
-        if (error) showAlertError(error, 'Erro ao salvar serviço.');
-        else {
-            formServico.reset();
-            delete formServico.dataset.editingId;
-            btn.textContent = 'Adicionar Serviço';
-            await renderServicos();
-        }
-        btn.disabled = false;
-    });
-
-    function addServicoActionListeners() {
-        document.querySelectorAll('#lista-servicos .delete-btn[data-type="servico"]').forEach(button => {
-            button.onclick = async () => {
-                if (confirm('Tem certeza que deseja excluir este serviço?')) {
-                    const id = button.dataset.id;
-                    const { error } = await supabaseClient.from('servicos').delete().eq('id', id).eq('company_id', currentUserCompanyId);
-                    if (error) showAlertError(error, 'Erro ao excluir serviço. Verifique se ele não está em uso em algum pedido.');
-                    else await renderServicos();
-                }
-            };
-        });
-        document.querySelectorAll('#lista-servicos .edit-btn[data-type="servico"]').forEach(button => {
-            button.onclick = async () => {
-                const id = button.dataset.id;
-                const servico = servicosCache.find(s => s.id === id);
-                if (servico) {
-                    document.getElementById('nome-servico').value = servico.nome;
-                    document.getElementById('valor-servico').value = servico.valor;
-                    document.getElementById('descricao-servico').value = servico.descricao;
-                    formServico.dataset.editingId = servico.id;
-                    document.getElementById('btn-add-servico').textContent = 'Atualizar Serviço';
-                }
-            };
-        });
-    }
-
-    // --- LÓGICA DE CLIENTES ---
-    const formCliente = document.getElementById('form-cliente');
-    const listaClientes = document.getElementById('lista-clientes');
-
-    async function renderClientes() {
-        showLoading(listaClientes);
-        let query = supabaseClient.from('clientes').select('*').order('nome', { ascending: true });
-        
-        // Se o usuário NÃO for admin, ele DEVE pertencer a uma empresa para ver dados.
-        if (currentUserRole !== 'admin') {
-            if (currentUserCompanyId) {
-                query = query.eq('company_id', currentUserCompanyId);
-            } else {
-                listaClientes.innerHTML = '<p>Você não está associado a uma empresa. Por favor, entre em contato com o administrador para ter acesso aos clientes.</p>';
-                return;
-            }
-        }
-
-        const { data, error } = await query;
-        if (error) {
-            showAlertError(error, 'Não foi possível carregar os clientes.');
-            listaClientes.innerHTML = '';
-            return;
-        }
-        clientesCache = data;
-        listaClientes.innerHTML = data.map(cliente => `
-            <div class="item-card">
-                <div>
-                    <strong>${cliente.nome}</strong><br>
-                    <small>${cliente.email || 'N/A'} | ${cliente.telefone || 'N/A'}</small>
-                    ${cliente.endereco ? `<br><small>Endereço: ${cliente.endereco}</small>` : ''}
-                    ${cliente.cnpj_cpf ? `<br><small>CNPJ/CPF: ${cliente.cnpj_cpf}</small>` : ''}
-                    ${cliente.responsavel ? `<br><small>Responsável: ${cliente.responsavel}</small>` : ''}
-                </div>
-                <div>
-                    <button class="edit-btn" data-id="${cliente.id}" data-type="cliente">Editar</button>
-                    <button class="delete-btn" data-id="${cliente.id}" data-type="cliente">Excluir</button>
-                </div>
-            </div>
-        `).join('');
-        updatePedidoFormOptions();
-        addClienteActionListeners();
-    }
-
-    formCliente.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('btn-add-cliente');
-        btn.disabled = true;
-        btn.textContent = 'Adicionando...';
-        
-        const nomeCliente = document.getElementById('nome-cliente').value;
-        const emailCliente = document.getElementById('email-cliente').value;
-        const telefoneCliente = document.getElementById('telefone-cliente').value;
-        const enderecoCliente = document.getElementById('endereco-cliente').value;
-        const cnpjCpfCliente = document.getElementById('cnpj-cpf-cliente').value;
-        const responsavelCliente = document.getElementById('responsavel-cliente').value;
-        const editingId = formCliente.dataset.editingId;
-
-        let dbOperation;
-        if (editingId) {
-            dbOperation = supabaseClient.from('clientes').update({ 
-                nome: nomeCliente, 
-                email: emailCliente, 
-                telefone: telefoneCliente,
-                endereco: enderecoCliente, 
-                cnpj_cpf: cnpjCpfCliente, 
-                responsavel: responsavelCliente 
-            }).eq('id', editingId).eq('company_id', currentUserCompanyId);
-        } else {
-            dbOperation = supabaseClient.from('clientes').insert([{ 
-                nome: nomeCliente, 
-                email: emailCliente, 
-                telefone: telefoneCliente,
-                endereco: enderecoCliente, 
-                cnpj_cpf: cnpjCpfCliente, 
-                responsavel: responsavelCliente,
-                company_id: currentUserCompanyId 
-            }]);
-        }
-        
-        const { error } = await dbOperation;
-        if (error) showAlertError(error, 'Erro ao salvar cliente.');
-        else {
-            formCliente.reset();
-            delete formCliente.dataset.editingId;
-            btn.textContent = 'Adicionar Cliente';
-            await renderClientes();
-        }
-        btn.disabled = false;
-    });
-
-    function addClienteActionListeners() {
-        document.querySelectorAll('#lista-clientes .delete-btn[data-type="cliente"]').forEach(button => {
-            button.onclick = async () => {
-                if (confirm('Tem certeza que deseja excluir este cliente?')) {
-                    const id = button.dataset.id;
-                    const { error } = await supabaseClient.from('clientes').delete().eq('id', id).eq('company_id', currentUserCompanyId);
-                    if (error) showAlertError(error, 'Erro ao excluir cliente. Pedidos associados a ele não serão excluídos.');
-                    else await renderClientes();
-                }
-            };
-        });
-        document.querySelectorAll('#lista-clientes .edit-btn[data-type="cliente"]').forEach(button => {
-            button.onclick = async () => {
-                const id = button.dataset.id;
-                const cliente = clientesCache.find(c => c.id === id);
-                if (cliente) {
-                    document.getElementById('nome-cliente').value = cliente.nome;
-                    document.getElementById('email-cliente').value = cliente.email;
-                    document.getElementById('telefone-cliente').value = cliente.telefone;
-                    document.getElementById('endereco-cliente').value = cliente.endereco;
-                    document.getElementById('cnpj-cpf-cliente').value = cliente.cnpj_cpf;
-                    document.getElementById('responsavel-cliente').value = cliente.responsavel;
-                    formCliente.dataset.editingId = cliente.id;
-                    document.getElementById('btn-add-cliente').textContent = 'Atualizar Cliente';
-                }
-            };
-        });
-    }
-
-    // --- LÓGICA DE PEDIDOS ---
-    const formPedido = document.getElementById('form-pedido');
-    const listaPedidos = document.getElementById('lista-pedidos');
-    const clientePedidoSelect = document.getElementById('cliente-pedido');
-    const servicoPedidoSelect = document.getElementById('servico-pedido');
-
-    function updatePedidoFormOptions() {
-        clientePedidoSelect.innerHTML = '<option value="">Selecione um cliente</option>' + clientesCache.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
-        servicoPedidoSelect.innerHTML = '<option value="">Selecione um serviço</option>' + servicosCache.map(s => `<option value="${s.id}">${s.nome} - ${formatCurrency(s.valor)}</option>`).join('');
-    }
-
-    const updatePedidoTotal = () => {
-        const totalServicos = servicosNoPedidoAtual.reduce((acc, item) => acc + (item.valor * item.quantidade), 0);
-        const desconto = parseFloat(document.getElementById('desconto-pedido').value) || 0;
-        document.getElementById('total-pedido').textContent = formatCurrency(Math.max(0, totalServicos - desconto));
-    };
-    
-    document.getElementById('add-servico-pedido-btn').addEventListener('click', () => {
-        const servicoId = servicoPedidoSelect.value;
-        const quantidade = parseInt(document.getElementById('quantidade-servico').value);
-        
-        console.log('Tentando adicionar serviço ao pedido:');
-        console.log('ID do serviço selecionado:', servicoId);
-        console.log('Quantidade selecionada:', quantidade);
-        console.log('servicosCache atual:', servicosCache);
-
-        if (!servicoId || isNaN(quantidade) || quantidade <= 0) { 
-            alert('Selecione um serviço e insira uma quantidade válida.');
-            console.log('Validação falhou: ID do serviço ou quantidade inválida.');
-            return;
-        }
-        const servico = servicosCache.find(s => String(s.id) === String(servicoId)); 
-        
-        if (servico) {
-            console.log('Serviço encontrado no cache:', servico);
-            const existingServiceIndex = servicosNoPedidoAtual.findIndex(item => String(item.id) === String(servicoId));
-            if (existingServiceIndex > -1) {
-                servicosNoPedidoAtual[existingServiceIndex].quantidade += quantidade;
-                console.log('Quantidade do serviço existente atualizada:', servicosNoPedidoAtual[existingServiceIndex]);
-            } else {
-                servicosNoPedidoAtual.push({ ...servico, quantidade });
-                console.log('Novo serviço adicionado à lista do pedido:', servicosNoPedidoAtual[servicosNoPedidoAtual.length - 1]);
-            }
-            
-            renderServicosDoPedido();
-            updatePedidoTotal();
-            servicoPedidoSelect.value = '';
-            document.getElementById('quantidade-servico').value = '1';
-        } else {
-            alert('Serviço não encontrado no cache. Tente recarregar a página.');
-            console.error('Serviço não encontrado no cache para o ID:', servicoId);
-        }
-    });
-
-    function renderServicosDoPedido() {
-        const listaServicosSelecionados = document.getElementById('pedido-servicos-selecionados');
-        listaServicosSelecionados.innerHTML = servicosNoPedidoAtual.map((item, index) => `
-            <li>
-                <span>${item.quantidade}x ${item.nome} (${formatCurrency(item.valor * item.quantidade)})</span>
-                <button type="button" class="delete-btn" data-index="${index}">x</button>
-            </li>
-        `).join('');
-    }
-
-    document.getElementById('pedido-servicos-selecionados').addEventListener('click', (e) => {
-        if (e.target.classList.contains('delete-btn')) {
-            servicosNoPedidoAtual.splice(parseInt(e.target.dataset.index), 1);
-            renderServicosDoPedido();
-            updatePedidoTotal();
-        }
-    });
-
-    document.getElementById('desconto-pedido').addEventListener('input', updatePedidoTotal);
-
-    formPedido.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const clienteId = clientePedidoSelect.value; 
-        
-        if (!clienteId || servicosNoPedidoAtual.length === 0) {
-            alert('Selecione um cliente e adicione pelo menos um serviço.');
-            console.log('Validação de pedido falhou: cliente ou serviços ausentes.');
-            return;
-        }
-        
-        const btn = document.getElementById('btn-add-pedido');
-        btn.disabled = true;
-        btn.textContent = 'Criando...';
-
-        const totalOriginal = servicosNoPedidoAtual.reduce((acc, item) => acc + (item.valor * item.quantidade), 0);
-        const desconto = parseFloat(document.getElementById('desconto-pedido').value) || 0;
-        const totalFinal = Math.max(0, totalOriginal - desconto);
-
-        const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-
-        if (sessionError || !session) {
-            alert('Erro: Não foi possível obter sua sessão de usuário. Por favor, faça login novamente.');
-            console.error('Erro ao obter sessão para criar pedido:', sessionError);
-            btn.disabled = false;
-            btn.textContent = 'Criar Pedido';
-            return;
-        }
-
-        console.log('Dados do pedido a serem inseridos:');
-        console.log('cliente_id:', clienteId);
-        console.log('servicos:', servicosNoPedidoAtual);
-        console.log('desconto:', desconto);
-        console.log('total_original:', totalOriginal);
-        console.log('total_final:', totalFinal);
-        console.log('user_id:', session.user.id);
-        console.log('company_id:', currentUserCompanyId);
-
-        const { error } = await supabaseClient.from('pedidos').insert([{
-            cliente_id: clienteId,
-            servicos: servicosNoPedidoAtual,
-            desconto,
-            total_original: totalOriginal,
-            total_final: totalFinal,
-            user_id: session.user.id, 
-            company_id: currentUserCompanyId 
-        }]);
-
-        if (error) {
-            showAlertError(error, 'Erro ao criar pedido. Verifique o console para mais detalhes.');
-            console.error('Erro detalhado na inserção do pedido:', error);
-        } else {
-            console.log('Pedido criado com sucesso!');
-            formPedido.reset();
-            servicosNoPedidoAtual = [];
-            document.getElementById('pedido-servicos-selecionados').innerHTML = '';
-            updatePedidoTotal();
-            await renderPedidos();
-        }
-        btn.disabled = false;
-        btn.textContent = 'Criar Pedido';
-    });
-
-    async function renderPedidos() {
-        showLoading(listaPedidos);
-        let query = supabaseClient
-            .from('pedidos')
-            .select('*, clientes(nome, email, telefone)') 
-            .order('data_solicitacao', { ascending: false }); 
-            
-        if (currentUserRole !== 'admin') {
-            if (currentUserCompanyId) {
-                query = query.eq('company_id', currentUserCompanyId);
-            } else {
-                listaPedidos.innerHTML = '<p>Você não está associado a uma empresa. Por favor, entre em contato com o administrador para ter acesso aos pedidos.</p>';
-                return;
-            }
-        }
-
-        const { data, error } = await query;
-            
-        if (error) {
-            showAlertError(error, 'Não foi possível carregar os pedidos.');
-            listaPedidos.innerHTML = '';
-            return;
-        }
-
-        const pedidosAgrupadosPorCliente = {};
-
-        data.forEach(pedido => {
-            const clienteNome = pedido.clientes ? pedido.clientes.nome : 'Cliente Removido';
-            const clienteId = pedido.cliente_id;
-
-            const clienteKey = `cliente_${clienteId || 'null'}_${clienteNome.replace(/\s/g, '_')}`;
-
-            if (!pedidosAgrupadosPorCliente[clienteKey]) {
-                pedidosAgrupadosPorCliente[clienteKey] = {
-                    nome: clienteNome,
-                    id: clienteId,
-                    pedidosPendentes: [],
-                    outrosPedidos: []
-                };
-            }
-
-            if (pedido.status_pagamento && pedido.status_pagamento.trim().toLowerCase() === 'pendente') { // Convertido para minúsculas
-                pedidosAgrupadosPorCliente[clienteKey].pedidosPendentes.push(pedido);
-            } else {
-                pedidosAgrupadosPorCliente[clienteKey].outrosPedidos.push(pedido);
-            }
-        });
-
-        let htmlPedidos = '';
-
-        const clientesKeysOrdenadas = Object.keys(pedidosAgrupadosPorCliente).sort((a, b) => {
-            const nomeA = pedidosAgrupadosPorCliente[a].nome.toLowerCase();
-            const nomeB = pedidosAgrupadosPorCliente[b].nome.toLowerCase();
-            if (nomeA < nomeB) return -1;
-            if (nomeA > nomeB) return 1;
-            return 0;
-        });
-
-        clientesKeysOrdenadas.forEach(key => {
-            const clienteInfo = pedidosAgrupadosPorCliente[key];
-
-            if (clienteInfo.pedidosPendentes.length > 0) {
-                htmlPedidos += `
-                    <div class="cliente-grupo-pedidos">
-                        <h3 style="margin-top: 0; color: var(--primary-color);">Pedidos Pendentes de ${clienteInfo.nome}</h3>
-                        <div class="item-list">
-                            ${clienteInfo.pedidosPendentes.map(pedido => renderPedidoCard(pedido)).join('')}
-                        </div>
-                    </div>
-                `;
-            }
-
-            if (clienteInfo.outrosPedidos.length > 0) {
-                if (clienteInfo.pedidosPendentes.length > 0) {
-                    htmlPedidos += `<hr style="border: 0; border-top: 1px dashed #eee; margin: 20px 0;">`;
-                }
-                htmlPedidos += `
-                    <div class="cliente-grupo-pedidos">
-                        <h3 style="margin-top: 0; color: #666;">Outros Pedidos de ${clienteInfo.nome}</h3>
-                        <div class="item-list">
-                            ${clienteInfo.outrosPedidos.map(pedido => renderPedidoCard(pedido)).join('')}
-                        </div>
-                    </div>
-                `;
-            }
-        });
-
-        listaPedidos.innerHTML = htmlPedidos;
-    }
-
-    function renderPedidoCard(pedido) {
-        const clienteNome = pedido.clientes ? pedido.clientes.nome : 'Cliente Removido';
-        let valorHtml = `<h3 class="preco-final">${formatCurrency(pedido.total_final)}</h3>`;
-        if (pedido.desconto > 0) {
-            valorHtml = `<span class="preco-original">${formatCurrency(pedido.total_original)}</span> <span class="desconto-valor">(- ${formatCurrency(pedido.desconto)})</span> ${valorHtml}`;
-        }
-        return `
-            <div class="pedido-card">
-                <div class="pedido-header">
-                    <h3>Pedido #${pedido.id}</h3>
-                    <span>${formatDate(pedido.data_solicitacao)}</span>
-                </div>
-                <p><strong>Cliente:</strong> ${clienteNome}</p>
-                <ul class="pedido-servicos-list">
-                    ${pedido.servicos.map(s => `<li>${s.quantidade}x ${s.nome} <span>${formatCurrency(s.valor * s.quantidade)}</span></li>`).join('')}
+        <main class="app-main">
+            <!-- Seção de Gerenciamento de Clientes -->
+            <section id="clients-section" class="app-section active">
+                <h2>Gerenciar Clientes</h2>
+                <form id="client-form" class="form-grid">
+                    <input type="text" id="client-name" placeholder="Nome do Cliente" required>
+                    <input type="email" id="client-email" placeholder="E-mail do Cliente" required>
+                    <input type="text" id="client-phone" placeholder="Telefone do Cliente">
+                    <button type="submit">Adicionar Cliente</button>
+                </form>
+                <h3>Meus Clientes</h3>
+                <ul id="clients-list" class="data-list">
+                    <!-- Clientes serão carregados aqui -->
                 </ul>
-                <div class="pedido-valores">${valorHtml}</div>
-                <div class="pedido-status">
-                    <div class="status-group">
-                        <label>Pagamento:</label>
-                        <select class="status-select" data-id="${pedido.id}" data-type="pagamento">
-                            <option value="Pendente" ${pedido.status_pagamento === 'Pendente' ? 'selected' : ''}>Pendente</option>
-                            <option value="Pago" ${pedido.status_pagamento === 'Pago' ? 'selected' : ''}>Pago</option>
-                        </select>
-                    </div>
-                    <div class="status-group">
-                        <label>Entrega:</label>
-                        <select class="status-select" data-id="${pedido.id}" data-type="entrega">
-                            <option value="Pendente" ${pedido.status_entrega === 'Pendente' ? 'selected' : ''}>Pendente</option>
-                            <option value="Entregue" ${pedido.status_entrega === 'Entregue' ? 'selected' : ''}>Entregue</option>
-                        </select>
-                    </div>
-                    <div class="status-group">
-                        <label>Data Entrega:</label>
-                        <input type="date" class="data-entrega-input" data-id="${pedido.id}" value="${pedido.data_entrega ? pedido.data_entrega.split('T')[0] : ''}">
-                    </div>
+            </section>
+
+            <!-- Seção de Gerenciamento de Serviços -->
+            <section id="services-section" class="app-section">
+                <h2>Gerenciar Serviços</h2>
+                <form id="service-form" class="form-grid">
+                    <input type="text" id="service-name" placeholder="Nome do Serviço" required>
+                    <input type="number" id="service-price" placeholder="Preço do Serviço" step="0.01" required>
+                    <textarea id="service-description" placeholder="Descrição do Serviço"></textarea>
+                    <button type="submit">Adicionar Serviço</button>
+                </form>
+                <h3>Meus Serviços</h3>
+                <ul id="services-list" class="data-list">
+                    <!-- Serviços serão carregados aqui -->
+                </ul>
+            </section>
+
+            <!-- Seção de Gerenciamento de Pedidos -->
+            <section id="orders-section" class="app-section">
+                <h2>Gerenciar Pedidos</h2>
+                <form id="order-form" class="form-grid">
+                    <select id="order-client-select" required>
+                        <option value="">Selecione o Cliente</option>
+                        <!-- Clientes serão carregados aqui -->
+                    </select>
+                    <select id="order-service-select" required>
+                        <option value="">Selecione o Serviço</option>
+                        <!-- Serviços serão carregados aqui -->
+                    </select>
+                    <input type="number" id="order-quantity" placeholder="Quantidade" value="1" min="1" required>
+                    <input type="date" id="order-date" required>
+                    <textarea id="order-notes" placeholder="Observações do Pedido"></textarea>
+                    <button type="submit">Criar Pedido</button>
+                </form>
+                <h3>Meus Pedidos</h3>
+                <ul id="orders-list" class="data-list">
+                    <!-- Pedidos serão carregados aqui -->
+                </ul>
+            </section>
+
+            <!-- Nova Seção de Relatórios -->
+            <section id="reports-section" class="app-section">
+                <h2>Relatórios</h2>
+
+                <h3>Valores Pendentes por Cliente</h3>
+                <div id="pending-values-summary">
+                    <p>Carregando resumo de valores pendentes...</p>
+                    <!-- Sumário de valores pendentes por cliente será exibido aqui -->
                 </div>
-                <div class="pedido-actions">
-                    <button class="view-comprovante-btn" data-id="${pedido.id}">Ver Comprovante</button>
-                    <button class="delete-btn" data-id="${pedido.id}">Excluir Pedido</button>
-                </div>
-            </div>
-        `;
-    }
 
-    listaPedidos.addEventListener('change', async (e) => {
-        if (e.target.classList.contains('status-select')) {
-            const id = e.target.dataset.id;
-            const type = e.target.dataset.type;
-            const value = e.target.value;
-            let updateData = {};
-            if (type === 'pagamento') updateData = { status_pagamento: value };
-            else if (type === 'entrega') updateData = { status_entrega: value };
+                <h3>Listagem Detalhada de Pedidos</h3>
+                <ul id="reports-orders-list" class="data-list">
+                    <p>Carregando listagem de pedidos...</p>
+                    <!-- Listagem de todos os pedidos será exibida aqui -->
+                </ul>
+            </section>
+        </main>
+    </div>
 
-            const { error } = await supabaseClient.from('pedidos').update(updateData).eq('id', id).eq('company_id', currentUserCompanyId);
-            if (error) showAlertError(error, `Erro ao atualizar status de ${type}.`);
-            else renderPedidos();
-        } else if (e.target.classList.contains('data-entrega-input')) {
-            const id = e.target.dataset.id;
-            const value = e.target.value;
-            const dateUTC = value ? new Date(value + 'T00:00:00Z').toISOString() : null;
-
-            const { error } = await supabaseClient.from('pedidos').update({ data_entrega: dateUTC }).eq('id', id).eq('company_id', currentUserCompanyId);
-            if (error) showAlertError(error, 'Erro ao atualizar data de entrega.');
-            else renderPedidos();
-        }
-    });
-
-    listaPedidos.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('delete-btn') && confirm('Tem certeza que deseja excluir este pedido?')) {
-            const id = e.target.dataset.id;
-            const { error } = await supabaseClient.from('pedidos').delete().eq('id', id).eq('company_id', currentUserCompanyId);
-            if (error) showAlertError(error, 'Erro ao excluir pedido.');
-            else await renderPedidos();
-        }
-        if (e.target.classList.contains('view-comprovante-btn')) {
-            const pedidoId = e.target.dataset.id;
-            await renderComprovanteModal(pedidoId);
-        }
-    });
-
-    // --- LÓGICA DO RELATÓRIO ---
-    const corpoTabelaRelatorio = document.getElementById('corpo-tabela-relatorio');
-    const listaResumoPendencias = document.getElementById('lista-resumo-pendencias');
-
-    async function renderRelatorio() {
-        showLoading(corpoTabelaRelatorio);
-        showLoading(listaResumoPendencias);
-
-        const trintaDiasAtras = new Date();
-        trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
-        const dataMinima = trintaDiasAtras.toISOString();
-
-        let query = supabaseClient
-            .from('pedidos')
-            .select('*, clientes(nome)')
-            .gte('data_solicitacao', dataMinima)
-            .order('data_solicitacao', { ascending: false });
-
-        if (currentUserRole !== 'admin') {
-            if (currentUserCompanyId) {
-                query = query.eq('company_id', currentUserCompanyId);
-            } else {
-                corpoTabelaRelatorio.innerHTML = '<tr><td colspan="7">Você não está associado a uma empresa. Por favor, entre em contato com o administrador para ter acesso ao relatório.</td></tr>';
-                listaResumoPendencias.innerHTML = '<p>Você não está associado a uma empresa. Por favor, entre em contato com o administrador para ter acesso ao resumo de pendências.</p>';
-                return;
-            }
-        }
-
-        const { data: pedidos, error } = await query;
-
-        if (error) {
-            showAlertError(error, 'Não foi possível carregar o relatório.');
-            corpoTabelaRelatorio.innerHTML = '<tr><td colspan="7">Erro ao carregar o relatório.</td></tr>';
-            listaResumoPendencias.innerHTML = '';
-            return;
-        }
-
-        if (pedidos.length === 0) {
-            corpoTabelaRelatorio.innerHTML = '<tr><td colspan="7">Nenhum pedido encontrado nos últimos 30 dias.</td></tr>';
-        } else {
-            corpoTabelaRelatorio.innerHTML = pedidos.map(pedido => `
-                <tr>
-                    <td>#${pedido.id}</td>
-                    <td>${pedido.clientes ? pedido.clientes.nome : 'Cliente Removido'}</td>
-                    <td>${formatDate(pedido.data_solicitacao)}</td>
-                    <td>${formatDate(pedido.data_entrega)}</td>
-                    <td>${formatCurrency(pedido.total_final)}</td>
-                    <td>${pedido.status_pagamento}</td>
-                    <td>${pedido.status_entrega}</td>
-                </tr>
-            `).join('');
-        }
-
-        // --- Resumo de Pendências ---
-        const resumoPendencias = {};
-
-        pedidos.forEach(pedido => {
-            console.log(`Debug Resumo Pendencias: Pedido ID: ${pedido.id}, Status Pagamento: '${pedido.status_pagamento}'`);
-            // CONVERTENDO PARA MINÚSCULAS ANTES DA COMPARAÇÃO
-            if (pedido.status_pagamento && pedido.status_pagamento.trim().toLowerCase() === 'pendente') { 
-                console.log(`Debug Resumo Pendencias: Pedido ${pedido.id} É PENDENTE.`);
-                const clienteNome = pedido.clientes ? pedido.clientes.nome : 'Cliente Removido';
-                if (!resumoPendencias[clienteNome]) {
-                    resumoPendencias[clienteNome] = { nome: clienteNome, totalPendente: 0, pedidos: [] };
-                }
-                resumoPendencias[clienteNome].totalPendente += pedido.total_final;
-                resumoPendencias[clienteNome].pedidos.push(pedido);
-            } else {
-                console.log(`Debug Resumo Pendencias: Pedido ${pedido.id} NÃO É PENDENTE. Status: '${pedido.status_pagamento}'`);
-            }
-        });
-
-        const clientesComPendencia = Object.values(resumoPendencias).sort((a, b) => {
-            const nomeA = a.nome.toLowerCase(); 
-            const nomeB = b.nome.toLowerCase();
-            if (nomeA < nomeB) return -1;
-            if (nomeA > nomeB) return 1;
-            return 0;
-        });
-
-        if (clientesComPendencia.length === 0) {
-            listaResumoPendencias.innerHTML = '<p>Nenhum valor pendente.</p>';
-        } else {
-            listaResumoPendencias.innerHTML = clientesComPendencia.map(cliente => `
-                <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-radius: 5px; background-color: #f9f9f9;">
-                    <strong>${cliente.nome}:</strong> ${formatCurrency(cliente.totalPendente)} em ${cliente.pedidos.length} pedido(s) pendente(s).
-                    <ul style="list-style: disc; padding-left: 20px; margin-top: 5px;">
-                        ${cliente.pedidos.map(p => `<li>Pedido #${p.id} (${formatDate(p.data_solicitacao)}): ${formatCurrency(p.total_final)}</li>`).join('')}
-                    </ul>
-                </div>
-            `).join('');
-        }
-    }
-
-    document.getElementById('exportar-relatorio-pdf').addEventListener('click', async () => {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p', 'pt', 'a4');
-        const element = document.getElementById('relatorio-tab'); // Captura a aba inteira do relatório
-
-        // Adiciona um título ao PDF
-        doc.setFontSize(18);
-        doc.text("Relatório de Pedidos", 40, 40);
-
-        // Renderiza o HTML para canvas e depois para PDF
-        html2canvas(element, { 
-            scale: 2, // Aumenta a escala para melhor qualidade
-            useCORS: true, // Importante se tiver imagens ou recursos de outras origens
-            allowTaint: true 
-        }).then(canvas => {
-            const imgData = canvas.toDataURL('image/png');
-            const imgWidth = 595; // Largura A4 em pt
-            const pageHeight = 842; // Altura A4 em pt
-            const imgHeight = canvas.height * imgWidth / canvas.width;
-            let heightLeft = imgHeight;
-            let position = 60; // Posição inicial abaixo do título
-
-            doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
-
-            while (heightLeft >= 0) {
-                position = heightLeft - imgHeight;
-                doc.addPage();
-                doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-            }
-            doc.save('relatorio_pedidos.pdf');
-        }).catch(error => {
-            console.error('Erro ao gerar PDF:', error);
-            alert('Ocorreu um erro ao gerar o PDF do relatório. Verifique o console.');
-        });
-    });
-
-    // --- Lógica do Comprovante Modal ---
-    const comprovanteModal = document.getElementById('comprovante-modal');
-    const comprovanteContainer = document.getElementById('comprovante-container');
-    const fecharModalBtn = document.getElementById('fechar-modal');
-    const exportComprovantePngBtn = document.getElementById('export-comprovante-png');
-    const exportComprovantePdfBtn = document.getElementById('export-comprovante-pdf');
-    let currentPedidoParaComprovante = null; // Para guardar os dados do pedido atual do comprovante
-
-    async function renderComprovanteModal(pedidoId) {
-        const { data: pedido, error } = await supabaseClient
-            .from('pedidos')
-            .select('*, clientes(nome, email, telefone)')
-            .eq('id', pedidoId)
-            .single();
-
-        if (error || !pedido) {
-            showAlertError(error, 'Não foi possível carregar os detalhes do pedido para o comprovante.');
-            return;
-        }
-
-        currentPedidoParaComprovante = pedido; // Salva o pedido para exportação
-
-        const cliente = pedido.clientes;
-        const dataSolicitacao = formatDate(pedido.data_solicitacao);
-        const dataEntrega = formatDate(pedido.data_entrega);
-
-        let servicosHtml = pedido.servicos.map(s => `
-            <li>
-                <span>${s.quantidade}x ${s.nome}</span>
-                <span>${s.valor.toFixed(2)} cada</span>
-                <span>${(s.valor * s.quantidade).toFixed(2)}</span>
-            </li>
-        `).join('');
-
-        comprovanteContainer.innerHTML = `
-            <h3>Detalhes do Pedido #${pedido.id}</h3>
-            <p><strong>Cliente:</strong> ${cliente ? cliente.nome : 'N/A'}</p>
-            <p><strong>Email:</strong> ${cliente ? cliente.email || 'N/A' : 'N/A'}</p>
-            <p><strong>Telefone:</strong> ${cliente ? cliente.telefone || 'N/A' : 'N/A'}</p>
-            <p><strong>Data da Solicitação:</strong> ${dataSolicitacao}</p>
-            <p><strong>Data da Entrega:</strong> ${dataEntrega}</p>
-            <hr>
-            <h4>Serviços:</h4>
-            <ul class="pedido-servicos-list">
-                ${servicosHtml}
-            </ul>
-            <hr>
-            <p><strong>Total Original:</strong> ${formatCurrency(pedido.total_original)}</p>
-            <p><strong>Desconto:</strong> ${formatCurrency(pedido.desconto)}</p>
-            <h3><strong>Total Final:</strong> ${formatCurrency(pedido.total_final)}</h3>
-            <p><strong>Status Pagamento:</strong> ${pedido.status_pagamento}</p>
-            <p><strong>Status Entrega:</strong> ${pedido.status_entrega}</p>
-        `;
-        comprovanteModal.style.display = 'flex';
-    }
-
-    fecharModalBtn.addEventListener('click', () => {
-        comprovanteModal.style.display = 'none';
-        currentPedidoParaComprovante = null;
-    });
-
-    exportComprovantePngBtn.addEventListener('click', () => {
-        if (!currentPedidoParaComprovante) return;
-        html2canvas(comprovanteContainer, { scale: 2, useCORS: true, allowTaint: true }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = `comprovante_pedido_${currentPedidoParaComprovante.id}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        }).catch(error => {
-            console.error('Erro ao exportar PNG:', error);
-            alert('Ocorreu um erro ao exportar o comprovante como PNG.');
-        });
-    });
-
-    exportComprovantePdfBtn.addEventListener('click', () => {
-        if (!currentPedidoParaComprovante) return;
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p', 'pt', 'a4');
-        
-        html2canvas(comprovanteContainer, { scale: 2, useCORS: true, allowTaint: true }).then(canvas => {
-            const imgData = canvas.toDataURL('image/png');
-            const imgWidth = 595; // A4 width in pts
-            const imgHeight = canvas.height * imgWidth / canvas.width;
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // =================================================================================
+            // ================== CONFIGURAÇÃO DO SUPABASE (SUAS CHAVES REAIS) =================
+            // =================================================================================
+            const SUPABASE_URL = 'https://lwocvzymhkwvjlsarflf.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3b2N2enltaGt3dmpsc2FyZmxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxOTM1OTUsImV4cCI6MjA2ODc2OTU5NX0.ucW4LCE7bE_vKlHcGSP55By-Z5MVPCGv6vRaClr1lv1';
+            // =================================================================================
+            // =================================================================================
             
-            doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-            doc.save(`comprovante_pedido_${currentPedidoParaComprovante.id}.pdf`);
-        }).catch(error => {
-            console.error('Erro ao exportar PDF:', error);
-            alert('Ocorreu um erro ao exportar o comprovante como PDF.');
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+            let currentUserId = null;
+            let currentUserCompanyId = null;
+            let currentUserRole = null;
+            let clientsCache = []; // Cache para clientes
+            let servicesCache = []; // Cache para serviços
+
+            // --- Elementos do DOM (Autenticação) ---
+            const authScreen = document.getElementById('auth-screen');
+            const loginForm = document.getElementById('login-form');
+            const loginEmailInput = document.getElementById('login-email');
+            const loginPasswordInput = document.getElementById('login-password');
+            const loginBtn = document.getElementById('login-btn');
+            const authMessageDiv = document.getElementById('auth-message');
+            const disconnectedMessageDiv = document.getElementById('disconnected-message'); // Mensagem "Você foi desconectado."
+
+            // --- Elementos do DOM (App Principal) ---
+            const mainApp = document.getElementById('main-app');
+            const userEmailDisplay = document.getElementById('user-email-display');
+            const userRoleDisplay = document.getElementById('user-role-display');
+            const logoutBtn = document.getElementById('logout-btn');
+
+            const clientsSection = document.getElementById('clients-section');
+            const servicesSection = document.getElementById('services-section');
+            const ordersSection = document.getElementById('orders-section');
+            const reportsSection = document.getElementById('reports-section'); // Nova seção de relatórios
+
+            const navButtons = document.querySelectorAll('.app-nav button');
+            const showClientsBtn = document.querySelector('.nav-btn[data-tab="clients"]');
+            const showServicesBtn = document.querySelector('.nav-btn[data-tab="services"]');
+            const showOrdersBtn = document.querySelector('.nav-btn[data-tab="orders"]');
+            const showReportsBtn = document.querySelector('.nav-btn[data-tab="reports"]'); // Novo botão de relatórios
+
+            // --- Funções Auxiliares ---
+            function showAuthMessage(text, type) {
+                authMessageDiv.textContent = text;
+                authMessageDiv.className = `message ${type}`;
+                authMessageDiv.style.display = 'block';
+                disconnectedMessageDiv.style.display = 'none'; // Esconde a mensagem de desconexão se outra mensagem aparecer
+            }
+
+            function showAppMessage(text, type) {
+                const appMessageDiv = document.createElement('div');
+                appMessageDiv.textContent = text;
+                appMessageDiv.className = `message ${type}`;
+                appMessageDiv.style.display = 'block';
+                // Adiciona a mensagem no topo da seção ativa
+                const activeSection = document.querySelector('.app-section.active');
+                if (activeSection) {
+                    activeSection.prepend(appMessageDiv);
+                    setTimeout(() => {
+                        appMessageDiv.remove(); // Remove a mensagem após alguns segundos
+                    }, 5000);
+                }
+            }
+
+            // --- Lógica do Formulário de Login ---
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Entrando...';
+                authMessageDiv.style.display = 'none';
+                disconnectedMessageDiv.style.display = 'none'; // Esconde a mensagem de desconexão ao tentar logar
+
+                const email = loginEmailInput.value;
+                const password = loginPasswordInput.value;
+
+                try {
+                    const { data, error } = await supabase.auth.signInWithPassword({
+                        email: email,
+                        password: password,
+                    });
+
+                    if (error) {
+                        if (error.message.includes('Invalid login credentials')) {
+                            showAuthMessage('Credenciais de login inválidas. Verifique seu e-mail e senha.', 'error');
+                        } else {
+                            showAuthMessage(`Erro ao fazer login: ${error.message}`, 'error');
+                        }
+                        console.error('Erro de login:', error);
+                        loginBtn.disabled = false;
+                        loginBtn.textContent = 'Entrar';
+                    } else {
+                        showAuthMessage('Login realizado com sucesso! Carregando sistema...', 'success');
+                        // A função onAuthStateChange cuidará da exibição do app principal
+                    }
+                } catch (err) {
+                    showAuthMessage('Ocorreu um erro inesperado. Tente novamente.', 'error');
+                    console.error('Erro geral no login:', err);
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Entrar';
+                }
+            });
+
+            // --- Funções de Autenticação e Exibição do App ---
+            async function checkAuthAndDisplayApp() {
+                const { data: { user } } = await supabase.auth.getUser();
+
+                if (user) {
+                    // Busca o perfil do usuário para obter a company_id e role
+                    const { data: profile, error } = await supabase
+                        .from('profiles')
+                        .select('email, role, company_id, full_name')
+                        .eq('id', user.id)
+                        .single();
+
+                    if (error || !profile) {
+                        console.error('Erro ao carregar perfil do usuário:', error);
+                        showAppMessage('Erro ao carregar seus dados. Tente novamente.', 'error');
+                        await supabase.auth.signOut(); // Força logout se o perfil não for encontrado
+                        return;
+                    }
+
+                    currentUserId = user.id;
+                    currentUserCompanyId = profile.company_id;
+                    currentUserRole = profile.role;
+
+                    userEmailDisplay.textContent = profile.email;
+                    userRoleDisplay.textContent = profile.role;
+
+                    authScreen.style.display = 'none';
+                    mainApp.style.display = 'block';
+                    loginBtn.disabled = false; // Reativa o botão de login caso o usuário faça logout e volte
+                    loginBtn.textContent = 'Entrar';
+
+                    // Carrega os dados iniciais para a seção ativa (Clientes por padrão)
+                    loadClients();
+                    loadServices();
+                    loadOrders();
+
+                } else {
+                    currentUserId = null;
+                    currentUserCompanyId = null;
+                    currentUserRole = null;
+                    authScreen.style.display = 'flex';
+                    mainApp.style.display = 'none';
+                    loginForm.reset(); // Limpa o formulário de login
+                    authMessageDiv.style.display = 'none'; // Esconde mensagens de erro anteriores
+                    disconnectedMessageDiv.style.display = 'block'; // Mostra a mensagem de desconexão
+                }
+            }
+
+            // --- Lógica de Logout ---
+            logoutBtn.addEventListener('click', async () => {
+                const { error } = await supabase.auth.signOut();
+                if (error) {
+                    console.error('Erro ao fazer logout:', error.message);
+                    showAppMessage('Erro ao sair: ' + error.message, 'error');
+                } else {
+                    // onAuthStateChange cuidará da exibição da tela de login e da mensagem de desconexão
+                }
+            });
+
+            // --- Funções para Gerenciar a Interface das Seções ---
+            function showAppSection(sectionToShow) {
+                clientsSection.style.display = 'none';
+                servicesSection.style.display = 'none';
+                ordersSection.style.display = 'none';
+                reportsSection.style.display = 'none'; // Adiciona a nova seção aqui
+                sectionToShow.style.display = 'block';
+
+                navButtons.forEach(btn => {
+                    if (btn.dataset.tab === sectionToShow.id.replace('-section', '')) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            }
+
+            showClientsBtn.addEventListener('click', () => {
+                showAppSection(clientsSection);
+                loadClients(); // Recarrega clientes ao mudar para a seção
+            });
+            showServicesBtn.addEventListener('click', () => {
+                showAppSection(servicesSection);
+                loadServices(); // Recarrega serviços ao mudar para a seção
+            });
+            showOrdersBtn.addEventListener('click', () => {
+                showAppSection(ordersSection);
+                loadClientsForOrderSelect(); // Carrega clientes para o select de pedidos
+                loadServicesForOrderSelect(); // Carrega serviços para o select de pedidos
+                loadOrders(); // Recarrega pedidos ao mudar para a seção
+            });
+            showReportsBtn.addEventListener('click', () => { // Novo listener para a aba Relatórios
+                showAppSection(reportsSection);
+                loadReports(); // Carrega os relatórios quando a aba é clicada
+            });
+
+            // --- Funções CRUD para Clientes ---
+            async function loadClients() {
+                if (!currentUserCompanyId) {
+                    console.warn('currentUserCompanyId não definido. Não é possível carregar clientes.');
+                    document.getElementById('clients-list').innerHTML = '<p>Carregando dados da empresa...</p>';
+                    return;
+                }
+                const { data, error } = await supabase
+                    .from('clients')
+                    .select('*')
+                    .eq('company_id', currentUserCompanyId)
+                    .order('name', { ascending: true });
+
+                if (error) {
+                    console.error('Erro ao carregar clientes:', error.message);
+                    showAppMessage('Erro ao carregar clientes: ' + error.message, 'error');
+                } else {
+                    const clientsList = document.getElementById('clients-list');
+                    clientsList.innerHTML = '';
+                    if (data.length === 0) {
+                        clientsList.innerHTML = '<p>Nenhum cliente cadastrado ainda.</p>';
+                    }
+                    clientsCache = data; // Atualiza o cache
+                    data.forEach(client => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <span>
+                                <strong>${client.name}</strong><br>
+                                E-mail: ${client.email}<br>
+                                Telefone: ${client.phone || 'N/A'}
+                            </span>
+                            <div>
+                                <button data-id="${client.id}" data-name="${client.name}" data-email="${client.email}" data-phone="${client.phone || ''}" class="edit-btn">Editar</button>
+                                <button data-id="${client.id}" class="delete-btn">Excluir</button>
+                            </div>
+                        `;
+                        clientsList.appendChild(li);
+                    });
+                    addClientActionListeners();
+                    loadClientsForOrderSelect(); // Atualiza o select de pedidos
+                }
+            }
+
+            document.getElementById('client-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const clientName = document.getElementById('client-name').value;
+                const clientEmail = document.getElementById('client-email').value;
+                const clientPhone = document.getElementById('client-phone').value;
+                const currentClientId = e.target.dataset.editingId;
+
+                let dbOperation;
+                if (currentClientId) {
+                    dbOperation = supabase
+                        .from('clients')
+                        .update({ name: clientName, email: clientEmail, phone: clientPhone })
+                        .eq('id', currentClientId)
+                        .eq('company_id', currentUserCompanyId); // Garante que só edita da própria empresa
+                } else {
+                    dbOperation = supabase
+                        .from('clients')
+                        .insert([{ name: clientName, email: clientEmail, phone: clientPhone, company_id: currentUserCompanyId }]);
+                }
+
+                const { error } = await dbOperation;
+
+                if (error) {
+                    console.error('Erro ao salvar cliente:', error.message);
+                    showAppMessage('Erro ao salvar cliente: ' + error.message, 'error');
+                } else {
+                    showAppMessage(currentClientId ? 'Cliente atualizado com sucesso!' : 'Cliente adicionado com sucesso!', 'success');
+                    document.getElementById('client-form').reset();
+                    delete e.target.dataset.editingId;
+                    e.target.querySelector('button[type="submit"]').textContent = 'Adicionar Cliente';
+                    loadClients();
+                }
+            });
+
+            function editClient(id, name, email, phone) {
+                document.getElementById('client-name').value = name;
+                document.getElementById('client-email').value = email;
+                document.getElementById('client-phone').value = phone;
+                document.getElementById('client-form').dataset.editingId = id;
+                document.getElementById('client-form').querySelector('button[type="submit"]').textContent = 'Atualizar Cliente';
+            }
+
+            async function deleteClient(id) {
+                if (!confirm('Tem certeza que deseja excluir este cliente?')) return;
+                const { error } = await supabase
+                    .from('clients')
+                    .delete()
+                    .eq('id', id)
+                    .eq('company_id', currentUserCompanyId); // Garante que só exclui da própria empresa
+
+                if (error) {
+                    console.error('Erro ao excluir cliente:', error.message);
+                    showAppMessage('Erro ao excluir cliente: ' + error.message, 'error');
+                } else {
+                    showAppMessage('Cliente excluído com sucesso!', 'success');
+                    loadClients();
+                }
+            }
+
+            function addClientActionListeners() {
+                document.querySelectorAll('#clients-list .delete-btn').forEach(button => {
+                    button.onclick = () => deleteClient(button.dataset.id);
+                });
+                document.querySelectorAll('#clients-list .edit-btn').forEach(button => {
+                    button.onclick = () => editClient(button.dataset.id, button.dataset.name, button.dataset.email, button.dataset.phone);
+                });
+            }
+
+            // --- Funções CRUD para Serviços ---
+            async function loadServices() {
+                if (!currentUserCompanyId) {
+                    console.warn('currentUserCompanyId não definido. Não é possível carregar serviços.');
+                    document.getElementById('services-list').innerHTML = '<p>Carregando dados da empresa...</p>';
+                    return;
+                }
+                const { data, error } = await supabase
+                    .from('services')
+                    .select('*')
+                    .eq('company_id', currentUserCompanyId)
+                    .order('name', { ascending: true });
+
+                if (error) {
+                    console.error('Erro ao carregar serviços:', error.message);
+                    showAppMessage('Erro ao carregar serviços: ' + error.message, 'error');
+                } else {
+                    const servicesList = document.getElementById('services-list');
+                    servicesList.innerHTML = '';
+                    if (data.length === 0) {
+                        servicesList.innerHTML = '<p>Nenhum serviço cadastrado ainda.</p>';
+                    }
+                    servicesCache = data; // Atualiza o cache
+                    data.forEach(service => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <span>
+                                <strong>${service.name}</strong><br>
+                                Preço: R$ ${parseFloat(service.price).toFixed(2)}<br>
+                                Descrição: ${service.description || 'N/A'}
+                            </span>
+                            <div>
+                                <button data-id="${service.id}" data-name="${service.name}" data-price="${service.price}" data-description="${service.description || ''}" class="edit-btn">Editar</button>
+                                <button data-id="${service.id}" class="delete-btn">Excluir</button>
+                            </div>
+                        `;
+                        servicesList.appendChild(li);
+                    });
+                    addServiceActionListeners();
+                    loadServicesForOrderSelect(); // Atualiza o select de pedidos
+                }
+            }
+
+            document.getElementById('service-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const serviceName = document.getElementById('service-name').value;
+                const servicePrice = parseFloat(document.getElementById('service-price').value);
+                const serviceDescription = document.getElementById('service-description').value;
+                const currentServiceId = e.target.dataset.editingId;
+
+                let dbOperation;
+                if (currentServiceId) {
+                    dbOperation = supabase
+                        .from('services')
+                        .update({ name: serviceName, price: servicePrice, description: serviceDescription })
+                        .eq('id', currentServiceId)
+                        .eq('company_id', currentUserCompanyId);
+                } else {
+                    dbOperation = supabase
+                        .from('services')
+                        .insert([{ name: serviceName, price: servicePrice, description: serviceDescription, company_id: currentUserCompanyId }]);
+                }
+
+                const { error } = await dbOperation;
+
+                if (error) {
+                    console.error('Erro ao salvar serviço:', error.message);
+                    showAppMessage('Erro ao salvar serviço: ' + error.message, 'error');
+                } else {
+                    showAppMessage(currentServiceId ? 'Serviço atualizado com sucesso!' : 'Serviço adicionado com sucesso!', 'success');
+                    document.getElementById('service-form').reset();
+                    delete e.target.dataset.editingId;
+                    e.target.querySelector('button[type="submit"]').textContent = 'Adicionar Serviço';
+                    loadServices();
+                }
+            });
+
+            function editService(id, name, price, description) {
+                document.getElementById('service-name').value = name;
+                document.getElementById('service-price').value = price;
+                document.getElementById('service-description').value = description;
+                document.getElementById('service-form').dataset.editingId = id;
+                document.getElementById('service-form').querySelector('button[type="submit"]').textContent = 'Atualizar Serviço';
+            }
+
+            async function deleteService(id) {
+                if (!confirm('Tem certeza que deseja excluir este serviço?')) return;
+                const { error } = await supabase
+                    .from('services')
+                    .delete()
+                    .eq('id', id)
+                    .eq('company_id', currentUserCompanyId);
+
+                if (error) {
+                    console.error('Erro ao excluir serviço:', error.message);
+                    showAppMessage('Erro ao excluir serviço: ' + error.message, 'error');
+                } else {
+                    showAppMessage('Serviço excluído com sucesso!', 'success');
+                    loadServices();
+                }
+            }
+
+            function addServiceActionListeners() {
+                document.querySelectorAll('#services-list .delete-btn').forEach(button => {
+                    button.onclick = () => deleteService(button.dataset.id);
+                });
+                document.querySelectorAll('#services-list .edit-btn').forEach(button => {
+                    button.onclick = () => editService(button.dataset.id, button.dataset.name, button.dataset.price, button.dataset.description);
+                });
+            }
+
+            // --- Funções CRUD para Pedidos ---
+            async function loadClientsForOrderSelect() {
+                const selectElement = document.getElementById('order-client-select');
+                selectElement.innerHTML = '<option value="">Selecione o Cliente</option>';
+                clientsCache.forEach(client => {
+                    const option = document.createElement('option');
+                    option.value = client.id;
+                    option.textContent = client.name;
+                    selectElement.appendChild(option);
+                });
+            }
+
+            async function loadServicesForOrderSelect() {
+                const selectElement = document.getElementById('order-service-select');
+                selectElement.innerHTML = '<option value="">Selecione o Serviço</option>';
+                servicesCache.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service.id;
+                    option.textContent = `${service.name} (R$ ${parseFloat(service.price).toFixed(2)})`;
+                    selectElement.appendChild(option);
+                });
+            }
+
+            async function loadOrders() {
+                if (!currentUserCompanyId) {
+                    console.warn('currentUserCompanyId não definido. Não é possível carregar pedidos.');
+                    document.getElementById('orders-list').innerHTML = '<p>Carregando dados da empresa...</p>';
+                    return;
+                }
+                const { data, error } = await supabase
+                    .from('orders')
+                    .select('*, clients(name), services(name, price)')
+                    .eq('company_id', currentUserCompanyId)
+                    .order('order_date', { ascending: false });
+
+                if (error) {
+                    console.error('Erro ao carregar pedidos:', error.message);
+                    showAppMessage('Erro ao carregar pedidos: ' + error.message, 'error');
+                } else {
+                    const ordersList = document.getElementById('orders-list');
+                    ordersList.innerHTML = '';
+                    if (data.length === 0) {
+                        ordersList.innerHTML = '<p>Nenhum pedido cadastrado ainda.</p>';
+                    }
+                    data.forEach(order => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <span>
+                                <strong>Pedido #${order.id.substring(0, 8)}...</strong><br>
+                                Cliente: ${order.clients ? order.clients.name : 'N/A'}<br>
+                                Serviço: ${order.services ? order.services.name : 'N/A'}<br>
+                                Quantidade: ${order.quantity}<br>
+                                Data: ${new Date(order.order_date).toLocaleDateString()}<br>
+                                Total: R$ ${order.services ? (order.quantity * parseFloat(order.services.price)).toFixed(2) : 'N/A'}<br>
+                                Observações: ${order.notes || 'N/A'}
+                            </span>
+                            <div>
+                                <button data-id="${order.id}" data-client-id="${order.client_id}" data-service-id="${order.service_id}" data-quantity="${order.quantity}" data-date="${order.order_date}" data-notes="${order.notes || ''}" class="edit-btn">Editar</button>
+                                <button data-id="${order.id}" class="delete-btn">Excluir</button>
+                            </div>
+                        `;
+                        ordersList.appendChild(li);
+                    });
+                    addOrderActionListeners();
+                }
+            }
+
+            document.getElementById('order-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const clientId = document.getElementById('order-client-select').value;
+                const serviceId = document.getElementById('order-service-select').value;
+                const quantity = parseInt(document.getElementById('order-quantity').value);
+                const orderDate = document.getElementById('order-date').value;
+                const notes = document.getElementById('order-notes').value;
+                const currentOrderId = e.target.dataset.editingId;
+
+                if (!clientId || !serviceId) {
+                    showAppMessage('Por favor, selecione um cliente e um serviço.', 'warning');
+                    return;
+                }
+
+                let dbOperation;
+                if (currentOrderId) {
+                    dbOperation = supabase
+                        .from('orders')
+                        .update({ client_id: clientId, service_id: serviceId, quantity: quantity, order_date: orderDate, notes: notes })
+                        .eq('id', currentOrderId)
+                        .eq('company_id', currentUserCompanyId);
+                } else {
+                    dbOperation = supabase
+                        .from('orders')
+                        .insert([{ client_id: clientId, service_id: serviceId, quantity: quantity, order_date: orderDate, notes: notes, company_id: currentUserCompanyId }]);
+                }
+
+                const { error } = await dbOperation;
+
+                if (error) {
+                    console.error('Erro ao salvar pedido:', error.message);
+                    showAppMessage('Erro ao salvar pedido: ' + error.message, 'error');
+                } else {
+                    showAppMessage(currentOrderId ? 'Pedido atualizado com sucesso!' : 'Pedido criado com sucesso!', 'success');
+                    document.getElementById('order-form').reset();
+                    delete e.target.dataset.editingId;
+                    e.target.querySelector('button[type="submit"]').textContent = 'Criar Pedido';
+                    loadOrders();
+                }
+            });
+
+            function editOrder(id, clientId, serviceId, quantity, date, notes) {
+                document.getElementById('order-client-select').value = clientId;
+                document.getElementById('order-service-select').value = serviceId;
+                document.getElementById('order-quantity').value = quantity;
+                document.getElementById('order-date').value = date;
+                document.getElementById('order-notes').value = notes;
+                document.getElementById('order-form').dataset.editingId = id;
+                document.getElementById('order-form').querySelector('button[type="submit"]').textContent = 'Atualizar Pedido';
+            }
+
+            async function deleteOrder(id) {
+                if (!confirm('Tem certeza que deseja excluir este pedido?')) return;
+                const { error } = await supabase
+                    .from('orders')
+                    .delete()
+                    .eq('id', id)
+                    .eq('company_id', currentUserCompanyId);
+
+                if (error) {
+                    console.error('Erro ao excluir pedido:', error.message);
+                    showAppMessage('Erro ao excluir pedido: ' + error.message, 'error');
+                } else {
+                    showAppMessage('Pedido excluído com sucesso!', 'success');
+                    loadOrders();
+                }
+            }
+
+            function addOrderActionListeners() {
+                document.querySelectorAll('#orders-list .delete-btn').forEach(button => {
+                    button.onclick = () => deleteOrder(button.dataset.id);
+                });
+                document.querySelectorAll('#orders-list .edit-btn').forEach(button => {
+                    button.onclick = () => editOrder(
+                        button.dataset.id,
+                        button.dataset.clientId,
+                        button.dataset.serviceId,
+                        button.dataset.quantity,
+                        button.dataset.date,
+                        button.dataset.notes
+                    );
+                });
+            }
+
+            // --- Funções para Relatórios ---
+            async function loadReports() {
+                if (!currentUserCompanyId) {
+                    console.warn('currentUserCompanyId não definido. Não é possível carregar relatórios.');
+                    document.getElementById('pending-values-summary').innerHTML = '<p>Carregando dados da empresa...</p>';
+                    document.getElementById('reports-orders-list').innerHTML = '<p>Carregando dados da empresa...</p>';
+                    return;
+                }
+
+                const { data: ordersData, error: ordersError } = await supabase
+                    .from('orders')
+                    .select('*, clients(name), services(name, price)')
+                    .eq('company_id', currentUserCompanyId)
+                    .order('order_date', { ascending: false });
+
+                if (ordersError) {
+                    console.error('Erro ao carregar dados para relatórios:', ordersError.message);
+                    document.getElementById('pending-values-summary').innerHTML = '<p class="message error">Erro ao carregar resumo de valores pendentes.</p>';
+                    document.getElementById('reports-orders-list').innerHTML = '<p class="message error">Erro ao carregar listagem de pedidos.</p>';
+                    return;
+                }
+
+                // --- Calcular e exibir Valores Pendentes por Cliente ---
+                const clientPendingTotals = {};
+                ordersData.forEach(order => {
+                    if (order.clients && order.services) {
+                        const clientName = order.clients.name;
+                        const orderTotal = order.quantity * parseFloat(order.services.price);
+                        clientPendingTotals[clientName] = (clientPendingTotals[clientName] || 0) + orderTotal;
+                    }
+                });
+
+                const pendingValuesSummaryDiv = document.getElementById('pending-values-summary');
+                pendingValuesSummaryDiv.innerHTML = ''; // Limpa o conteúdo anterior
+                if (Object.keys(clientPendingTotals).length === 0) {
+                    pendingValuesSummaryDiv.innerHTML = '<p>Nenhum valor pendente encontrado.</p>';
+                } else {
+                    let summaryHtml = '<ul>';
+                    for (const clientName in clientPendingTotals) {
+                        summaryHtml += `<li>${clientName}: <strong>R$ ${clientPendingTotals[clientName].toFixed(2)}</strong></li>`;
+                    }
+                    summaryHtml += '</ul>';
+                    pendingValuesSummaryDiv.innerHTML = summaryHtml;
+                }
+
+                // --- Exibir Listagem Detalhada de Pedidos ---
+                const reportsOrdersList = document.getElementById('reports-orders-list');
+                reportsOrdersList.innerHTML = ''; // Limpa o conteúdo anterior
+                if (ordersData.length === 0) {
+                    reportsOrdersList.innerHTML = '<p>Nenhum pedido registrado para relatórios.</p>';
+                } else {
+                    ordersData.forEach(order => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <span>
+                                <strong>Pedido #${order.id.substring(0, 8)}...</strong><br>
+                                Cliente: ${order.clients ? order.clients.name : 'N/A'}<br>
+                                Serviço: ${order.services ? order.services.name : 'N/A'}<br>
+                                Quantidade: ${order.quantity}<br>
+                                Data: ${new Date(order.order_date).toLocaleDateString()}<br>
+                                Total: R$ ${order.services ? (order.quantity * parseFloat(order.services.price)).toFixed(2) : 'N/A'}<br>
+                                Observações: ${order.notes || 'N/A'}
+                            </span>
+                        `;
+                        // Sem botões de editar/excluir nesta listagem de relatórios
+                        reportsOrdersList.appendChild(li);
+                    });
+                }
+            }
+
+
+            // --- Listener de Mudança de Estado de Autenticação do Supabase ---
+            supabase.auth.onAuthStateChange((event, session) => {
+                console.log('Auth event:', event, 'Session:', session);
+                checkAuthAndDisplayApp(); // Re-verifica e exibe o app ou tela de login
+            });
+
+            // Chamada inicial para verificar o estado de autenticação ao carregar a página
+            checkAuthAndDisplayApp();
         });
-    });
-
-    // --- LÓGICA DE EMPRESAS (ADMIN APENAS) ---
-    const formEmpresa = document.getElementById('form-empresa');
-    const listaEmpresas = document.getElementById('lista-empresas');
-    const empresaUsuarioSelect = document.getElementById('empresa-usuario'); // Select de empresa na criação de usuário
-
-    async function renderEmpresas() {
-        console.log('[renderEmpresas] Função chamada.');
-        if (currentUserRole !== 'admin') {
-            listaEmpresas.innerHTML = '<p>Você não tem permissão para visualizar empresas.</p>';
-            console.log('[renderEmpresas] Usuário não é admin, acesso negado.');
-            return;
-        }
-        showLoading(listaEmpresas);
-        console.log('[renderEmpresas] Tentando carregar empresas do Supabase...');
-        const { data, error } = await supabaseClient.from('companies').select('*').order('name', { ascending: true });
-        if (error) {
-            showAlertError(error, 'Não foi possível carregar as empresas.');
-            listaEmpresas.innerHTML = '';
-            console.error('[renderEmpresas] Erro ao carregar empresas:', error);
-            return;
-        }
-        empresasCache = data;
-        console.log('[renderEmpresas] Empresas carregadas:', data);
-        listaEmpresas.innerHTML = data.map(empresa => `
-            <div class="item-card">
-                <div><strong>${empresa.name}</strong><br><small>ID: ${empresa.id}</small></div>
-                <button class="delete-btn" data-id="${empresa.id}">Excluir</button>
-            </div>
-        `).join('');
-        updateEmpresaSelectOptions();
-    }
-
-    formEmpresa.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (currentUserRole !== 'admin') { alert('Permissão negada.'); return; }
-
-        const btn = document.getElementById('btn-add-empresa');
-        btn.disabled = true;
-        btn.textContent = 'Adicionando...';
-
-        const nomeEmpresa = document.getElementById('nome-empresa').value;
-        
-        const { data, error } = await supabaseClient.rpc('create_new_company', { company_name: nomeEmpresa });
-
-        if (error) {
-            showAlertError(error, 'Erro ao adicionar empresa.');
-        } else {
-            formEmpresa.reset();
-            alert(`Empresa "${nomeEmpresa}" criada com sucesso! ID: ${data.company_id}`);
-            await renderEmpresas();
-        }
-        btn.disabled = false;
-        btn.textContent = 'Adicionar Empresa';
-    });
-
-    listaEmpresas.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('delete-btn') && currentUserRole === 'admin') {
-            if (confirm('Tem certeza que deseja excluir esta empresa? Isso removerá TODOS os dados associados a ela (usuários, clientes, serviços, pedidos)! Esta ação é irreversível!')) {
-                const id = e.target.dataset.id;
-                const { error } = await supabaseClient.from('companies').delete().eq('id', id);
-                if (error) showAlertError(error, 'Erro ao excluir empresa.');
-                else await renderEmpresas();
-            }
-        }
-    });
-
-    function updateEmpresaSelectOptions() {
-        empresaUsuarioSelect.innerHTML = '<option value="">Selecione uma empresa</option>' + empresasCache.map(empresa => `<option value="${empresa.id}">${empresa.name}</option>`).join('');
-    }
-
-
-    // --- LÓGICA DE USUÁRIOS (ADMIN APENAS) ---
-    const formUsuario = document.getElementById('form-usuario');
-    const listaUsuarios = document.getElementById('lista-usuarios');
-
-    async function renderUsuarios() {
-        console.log('[renderUsuarios] Função chamada.');
-        if (currentUserRole !== 'admin') {
-            listaUsuarios.innerHTML = '<p>Você não tem permissão para visualizar usuários.</p>';
-            console.log('[renderUsuarios] Usuário não é admin, acesso negado.');
-            return;
-        }
-        showLoading(listaUsuarios);
-        console.log('[renderUsuarios] Tentando carregar usuários do Supabase...');
-        const { data, error } = await supabaseClient.from('profiles').select('*, companies(name)').order('email', { ascending: true });
-        if (error) {
-            showAlertError(error, 'Não foi possível carregar os usuários.');
-            listaUsuarios.innerHTML = '';
-            console.error('[renderUsuarios] Erro ao carregar usuários:', error);
-            return;
-        }
-        console.log('[renderUsuarios] Usuários carregados:', data);
-        listaUsuarios.innerHTML = data.map(usuario => `
-            <div class="item-card">
-                <div>
-                    <strong>${usuario.email}</strong><br>
-                    <small>Nome: ${usuario.full_name || 'N/A'}</small><br>
-                    <small>Permissão: ${usuario.role}</small><br>
-                    <small>Empresa: ${usuario.companies ? usuario.companies.name : 'N/A'}</small>
-                </div>
-                <button class="delete-btn" data-id="${usuario.id}">Excluir</button>
-            </div>
-        `).join('');
-        await renderEmpresas(); 
-    }
-
-    formUsuario.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (currentUserRole !== 'admin') { alert('Permissão negada.'); return; }
-
-        const btn = document.getElementById('btn-add-usuario');
-        btn.disabled = true;
-        btn.textContent = 'Processando...';
-
-        const email = document.getElementById('email-usuario').value;
-        const password = document.getElementById('senha-usuario').value;
-        const fullName = document.getElementById('nome-completo-usuario').value;
-        const role = document.getElementById('role-usuario').value;
-        const companyId = document.getElementById('empresa-usuario').value;
-
-        if (!companyId) {
-            alert('Por favor, selecione uma empresa para o novo usuário.');
-            btn.disabled = false;
-            btn.textContent = 'Adicionar Usuário';
-            return;
-        }
-
-        try {
-            const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
-                email: email,
-                password: password,
-                email_confirm: true
-            });
-
-            if (authError) {
-                showAlertError(authError, 'Erro ao criar usuário na autenticação.');
-                btn.disabled = false;
-                btn.textContent = 'Adicionar Usuário';
-                return;
-            }
-
-            const userId = authData.user.id;
-
-            const { error: rpcError } = await supabaseClient.rpc('create_profile_for_user', {
-                user_id: userId,
-                user_email: email,
-                user_role: role,
-                user_company_id: companyId,
-                full_name: fullName
-            });
-
-            if (rpcError) {
-                showAlertError(rpcError, 'Erro ao criar perfil do usuário. O usuário na autenticação será removido.');
-                await supabaseClient.auth.admin.deleteUser(userId);
-                console.error('Usuário de autenticação revertido devido a falha na criação do perfil.');
-            } else {
-                alert('Usuário e perfil criados com sucesso!');
-                formUsuario.reset();
-                await renderUsuarios();
-            }
-        } catch (err) {
-            showAlertError(err, 'Ocorreu um erro inesperado ao criar o usuário.');
-        } finally {
-            btn.disabled = false;
-            btn.textContent = 'Adicionar Usuário';
-        }
-    });
-
-    listaUsuarios.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('delete-btn') && currentUserRole === 'admin') {
-            if (confirm('Tem certeza que deseja excluir este usuário? Isso removerá o acesso e o perfil dele. Esta ação é irreversível!')) {
-                const id = e.target.dataset.id;
-                const { error } = await supabaseClient.auth.admin.deleteUser(id);
-                if (error) showAlertError(error, 'Erro ao excluir usuário.');
-                else await renderUsuarios();
-            }
-        }
-    });
-
-
-}); // Fim do DOMContentLoaded
-</script>
-
+    </script>
 </body>
 </html>
