@@ -392,11 +392,8 @@
             } else {
                 currentUserRole = 'guest'; // Resetar a role
                 currentUserCompanyId = null; // Resetar company_id
-                loginScreen.style.display = 'flex';
-                mainSystem.style.display = 'none';
-                showMessage('Você foi desconectado.', 'success');
-                // Opcional: Recarregar a página para garantir estado limpo
-                // window.location.reload(); 
+                // A função initSystem será chamada automaticamente pelo onAuthStateChange
+                // e cuidará da exibição da tela de login e reativação do botão.
             }
         });
 
@@ -409,6 +406,10 @@
                 console.log("User found:", user); // Log de depuração: Usuário encontrado
                 loginScreen.style.display = 'none';
                 mainSystem.style.display = 'block';
+                // FIX: Reativa o botão de login e reseta o texto quando o sistema principal é exibido
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Entrar';
+                messageDiv.style.display = 'none'; // Esconde mensagens de login/logout anteriores
                 console.log("Displaying main system, hiding login screen."); // Log de depuração: Exibindo sistema principal
 
                 // Buscar o perfil do usuário para determinar a role e company_id
@@ -461,6 +462,9 @@
                 console.log("No user found, displaying login screen."); // Log de depuração: Nenhum usuário encontrado
                 loginScreen.style.display = 'flex';
                 mainSystem.style.display = 'none';
+                // FIX: Reativa o botão de login e reseta o texto quando a tela de login é exibida
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Entrar';
             }
         }
 
@@ -806,7 +810,7 @@
             let htmlPedidos = '';
 
             const clientesKeysOrdenadas = Object.keys(pedidosAgrupadosPorCliente).sort((a, b) => {
-                const nomeA = pedidosAgrupadosPorCliente[a].nome.toLowerCase();
+                const nomeA = pedidosAgrupadosPorCliente[a].nome.toLowerCase(); 
                 const nomeB = pedidosAgrupadosPorCliente[b].nome.toLowerCase();
                 if (nomeA < nomeB) return -1;
                 if (nomeA > nomeB) return 1;
@@ -1054,7 +1058,7 @@
         const comprovanteContainer = document.getElementById('comprovante-container');
         const fecharModalBtn = document.getElementById('fechar-modal');
         const exportComprovantePngBtn = document.getElementById('export-comprovante-png');
-        const exportComprovantePdfBtn = document = document.getElementById('export-comprovante-pdf');
+        const exportComprovantePdfBtn = document.getElementById('export-comprovante-pdf'); // Corrigido o erro de atribuição
         let currentPedidoParaComprovante = null; // Para guardar os dados do pedido atual do comprovante
 
         async function renderComprovanteModal(pedidoId) {
