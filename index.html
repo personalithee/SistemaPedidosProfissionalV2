@@ -1,4 +1,4 @@
-l>
+
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -289,8 +289,8 @@ l>
                     loginBtn.textContent = 'Entrar';
                 } else {
                     showMessage('Login realizado com sucesso! Carregando sistema...', 'success');
-                    // Chame a função que inicializa o sistema após login
-                    await initSystem(); 
+                    // A função initSystem será chamada automaticamente pelo onAuthStateChange
+                    // e cuidará da exibição da tela principal.
                 }
             } catch (err) {
                 showMessage('Ocorreu um erro inesperado. Tente novamente.', 'error');
@@ -334,11 +334,16 @@ l>
             if (error) {
                 showAlertError(error, 'Erro ao fazer logout.');
             } else {
-                currentUserRole = 'guest'; // Resetar a role
-                currentUserCompanyId = null; // Resetar company_id
-                // A função initSystem será chamada automaticamente pelo onAuthStateChange
-                // e cuidará da exibição da tela de login e reativação do botão.
+                console.log("Logout bem-sucedido. onAuthStateChange deve ser acionado.");
+                // O onAuthStateChange listener abaixo cuidará da exibição da tela de login.
             }
+        });
+
+        // --- Listener para mudanças no estado de autenticação ---
+        // ESTA É A PRINCIPAL MUDANÇA PARA CORRIGIR O LOGOUT
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            console.log(`[onAuthStateChange] Evento: ${event}, Sessão:`, session);
+            initSystem(); // Sempre chama initSystem para reavaliar o estado do sistema
         });
 
         // Função para inicializar o sistema após o login ou ao carregar a página
@@ -396,12 +401,15 @@ l>
                 // FIX: Reativa o botão de login e reseta o texto quando a tela de login é exibida
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Entrar';
+                // Limpa os dados do usuário e da empresa ao deslogar
+                currentUserRole = 'guest'; 
+                currentUserCompanyId = null;
             }
         }
 
         // Chame initSystem ao carregar a página para verificar o status de login
         console.log("Calling initSystem on page load."); // Log de depuração: Chamando initSystem
-        initSystem();
+        // initSystem(); // Removido, pois onAuthStateChange já chamará na inicialização
 
         // --- LÓGICA DE SERVIÇOS ---
         const formServico = document.getElementById('form-servico');
