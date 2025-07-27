@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+l>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -39,10 +39,6 @@
         #logout-btn-nav:hover { background-color: #c82333; }
         .tab-content { display: none; padding: 25px; }
         .tab-content.active { display: block; }
-        /* Adicionado estilo para garantir que a aba de configuração seja visível */
-        #configuracao-tab.active {
-            display: block !important;
-        }
         h2 { border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 20px; }
         form { background-color: var(--secondary-color); padding: 20px; border-radius: 8px; margin-bottom: 20px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
         .form-group { display: flex; flex-direction: column; }
@@ -110,8 +106,6 @@
             <button class="nav-btn" data-tab="clientes">Clientes</button>
             <button class="nav-btn" data-tab="pedidos">Pedidos</button>
             <button class="nav-btn" data-tab="relatorio">Relatório</button>
-            <!-- Nova aba de Configuração para administradores -->
-            <button class="nav-btn admin-feature" data-tab="configuracao" style="display: none;">Configuração</button>
             <button id="logout-btn-nav">Sair</button>
         </nav>
 
@@ -120,7 +114,6 @@
             <form id="form-servico">
                 <div class="form-group"><label for="nome-servico">Nome do Serviço</label><input type="text" id="nome-servico" required></div>
                 <div class="form-group"><label for="valor-servico">Valor (R$)</label><input type="number" id="valor-servico" step="0.01" min="0" required></div>
-                <!-- Novo campo de Descrição para Serviços -->
                 <div class="form-group" style="grid-column: 1 / -1;"><label for="descricao-servico">Descrição</label><textarea id="descricao-servico" rows="3"></textarea></div>
                 <button type="submit" id="btn-add-servico" style="grid-column: 1 / -1;">Adicionar Serviço</button>
             </form>
@@ -134,7 +127,6 @@
                 <div class="form-group"><label for="nome-cliente">Nome do Cliente</label><input type="text" id="nome-cliente" required></div>
                 <div class="form-group"><label for="email-cliente">Email</label><input type="email" id="email-cliente"></div>
                 <div class="form-group"><label for="telefone-cliente">Telefone</label><input type="tel" id="telefone-cliente"></div>
-                <!-- Novos campos para Clientes -->
                 <div class="form-group"><label for="endereco-cliente">Endereço</label><input type="text" id="endereco-cliente"></div>
                 <div class="form-group"><label for="cnpj-cpf-cliente">CNPJ/CPF</label><input type="text" id="cnpj-cpf-cliente"></div>
                 <div class="form-group"><label for="responsavel-cliente">Responsável</label><input type="text" id="responsavel-cliente"></div>
@@ -182,38 +174,6 @@
                     <tbody id="corpo-tabela-relatorio"></tbody>
                 </table>
             </div>
-        </div>
-
-        <!-- Seção de Gerenciamento de Configurações (APENAS ADMIN) -->
-        <div id="configuracao-tab" class="tab-content admin-only" style="display: none;">
-            <h2>Gerenciar Empresas</h2>
-            <form id="form-empresa">
-                <div class="form-group"><label for="nome-empresa">Nome da Empresa</label><input type="text" id="nome-empresa" required></div>
-                <button type="submit" id="btn-add-empresa" style="grid-column: 1 / -1;">Adicionar Empresa</button>
-            </form>
-            <h3>Empresas Cadastradas</h3>
-            <div id="lista-empresas" class="item-list"></div>
-
-            <h2 style="margin-top: 40px;">Gerenciar Usuários</h2>
-            <form id="form-usuario">
-                <div class="form-group"><label for="email-usuario">Email</label><input type="email" id="email-usuario" required></div>
-                <div class="form-group"><label for="senha-usuario">Senha (deixe em branco para não alterar)</label><input type="password" id="senha-usuario"></div>
-                <div class="form-group"><label for="nome-completo-usuario">Nome Completo</label><input type="text" id="nome-completo-usuario"></div>
-                <div class="form-group"><label for="role-usuario">Permissão</label>
-                    <select id="role-usuario" required>
-                        <option value="user">Usuário</option>
-                        <option value="admin">Administrador</option>
-                    </select>
-                </div>
-                <div class="form-group"><label for="empresa-usuario">Empresa</label>
-                    <select id="empresa-usuario" required>
-                        <option value="">Selecione uma empresa</option>
-                    </select>
-                </div>
-                <button type="submit" id="btn-add-usuario" style="grid-column: 1 / -1;">Adicionar Usuário</button>
-            </form>
-            <h3>Usuários Cadastrados</h3>
-            <div id="lista-usuarios" class="item-list"></div>
         </div>
 
     </div>
@@ -274,7 +234,6 @@
         let servicosNoPedidoAtual = [];
         let servicosCache = [];
         let clientesCache = [];
-        let empresasCache = []; // Cache para empresas
         let currentUserRole = 'guest'; // Padrão inicial antes da verificação
         let currentUserCompanyId = null; // ID da empresa do usuário logado
 
@@ -354,16 +313,6 @@
 
             console.log(`[handleNavClick] Botão clicado: ${tabId}`); // Log de navegação
 
-            // Controle de acesso baseado na role
-            // Apenas a aba 'configuracao' é restrita para usuários comuns
-            if (currentUserRole === 'user') {
-                if (tabId === 'configuracao') {
-                    alert('Você não tem permissão para acessar esta seção.');
-                    console.warn(`[handleNavClick] Acesso negado para usuário comum na aba: ${tabId}`);
-                    return;
-                }
-            }
-
             navButtons.forEach(btn => btn.classList.remove('active'));
             e.target.classList.add('active');
             tabContents.forEach(content => {
@@ -377,11 +326,6 @@
             else if (tabId === 'servicos') renderServicos();
             else if (tabId === 'clientes') renderClientes();
             else if (tabId === 'pedidos') renderPedidos();
-            else if (tabId === 'configuracao') { // Chamada para a nova aba de configuração
-                console.log('[handleNavClick] Chamando renderEmpresas e renderUsuarios para a aba Configuração.'); // Log específico
-                renderEmpresas(); // Irá carregar empresas
-                renderUsuarios(); // Irá carregar usuários e atualizar o select de empresas
-            }
         }
 
         // Função de Logout
@@ -440,23 +384,10 @@
                     else if (tabId === 'servicos') renderServicos();
                     else if (tabId === 'clientes') renderClientes();
                     else if (tabId === 'pedidos') renderPedidos();
-                    else if (tabId === 'configuracao') { // Chamada para a nova aba de configuração
-                        renderEmpresas();
-                        renderUsuarios();
-                    }
                 } else {
                     // Se nenhuma aba estiver ativa (o que não deve acontecer), renderiza serviços
                     renderServicos();
                 }
-
-                // Exibir/ocultar botões de administração com base na role
-                document.querySelectorAll('.admin-feature').forEach(btn => {
-                    if (currentUserRole === 'admin') {
-                        btn.style.display = 'block';
-                    } else {
-                        btn.style.display = 'none';
-                    }
-                });
 
             } else {
                 console.log("No user found, displaying login screen."); // Log de depuração: Nenhum usuário encontrado
@@ -800,7 +731,8 @@
                     };
                 }
 
-                if (pedido.status_pagamento === 'Pendente') {
+                // Correção: Comparação de status de pagamento insensível a maiúsculas e minúsculas
+                if (pedido.status_pagamento && pedido.status_pagamento.toLowerCase() === 'pendente') {
                     pedidosAgrupadosPorCliente[clienteKey].pedidosPendentes.push(pedido);
                 } else {
                     pedidosAgrupadosPorCliente[clienteKey].outrosPedidos.push(pedido);
@@ -870,15 +802,15 @@
                         <div class="status-group">
                             <label>Pagamento:</label>
                             <select class="status-select" data-id="${pedido.id}" data-type="pagamento">
-                                <option value="Pendente" ${pedido.status_pagamento === 'Pendente' ? 'selected' : ''}>Pendente</option>
-                                <option value="Pago" ${pedido.status_pagamento === 'Pago' ? 'selected' : ''}>Pago</option>
+                                <option value="Pendente" ${pedido.status_pagamento && pedido.status_pagamento.toLowerCase() === 'pendente' ? 'selected' : ''}>Pendente</option>
+                                <option value="Pago" ${pedido.status_pagamento && pedido.status_pagamento.toLowerCase() === 'pago' ? 'selected' : ''}>Pago</option>
                             </select>
                         </div>
                         <div class="status-group">
                             <label>Entrega:</label>
                             <select class="status-select" data-id="${pedido.id}" data-type="entrega">
-                                <option value="Pendente" ${pedido.status_entrega === 'Pendente' ? 'selected' : ''}>Pendente</option>
-                                <option value="Entregue" ${pedido.status_entrega === 'Entregue' ? 'selected' : ''}>Entregue</option>
+                                <option value="Pendente" ${pedido.status_entrega && pedido.status_entrega.toLowerCase() === 'pendente' ? 'selected' : ''}>Pendente</option>
+                                <option value="Entregue" ${pedido.status_entrega && pedido.status_entrega.toLowerCase() === 'entregue' ? 'selected' : ''}>Entregue</option>
                             </select>
                         </div>
                         <div class="status-group">
@@ -903,7 +835,13 @@
                 if (type === 'pagamento') updateData = { status_pagamento: value };
                 else if (type === 'entrega') updateData = { status_entrega: value };
 
-                const { error } = await supabaseClient.from('pedidos').update(updateData).eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
+                // Para administradores, não filtramos por company_id ao atualizar status
+                let query = supabaseClient.from('pedidos').update(updateData).eq('id', id);
+                if (currentUserRole !== 'admin') {
+                    query = query.eq('company_id', currentUserCompanyId);
+                }
+
+                const { error } = await query;
                 if (error) showAlertError(error, `Erro ao atualizar status de ${type}.`);
                 else renderPedidos(); // Recarrega para mostrar o status atualizado
             } else if (e.target.classList.contains('data-entrega-input')) {
@@ -912,7 +850,13 @@
                 // Para garantir que o Supabase interprete como UTC para compatibilidade
                 const dateUTC = value ? new Date(value + 'T00:00:00Z').toISOString() : null;
 
-                const { error } = await supabaseClient.from('pedidos').update({ data_entrega: dateUTC }).eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
+                // Para administradores, não filtramos por company_id ao atualizar data de entrega
+                let query = supabaseClient.from('pedidos').update({ data_entrega: dateUTC }).eq('id', id);
+                if (currentUserRole !== 'admin') {
+                    query = query.eq('company_id', currentUserCompanyId);
+                }
+
+                const { error } = await query;
                 if (error) showAlertError(error, 'Erro ao atualizar data de entrega.');
                 else renderPedidos();
             }
@@ -921,7 +865,12 @@
         listaPedidos.addEventListener('click', async (e) => {
             if (e.target.classList.contains('delete-btn') && confirm('Tem certeza que deseja excluir este pedido?')) {
                 const id = e.target.dataset.id;
-                const { error } = await supabaseClient.from('pedidos').delete().eq('id', id).eq('company_id', currentUserCompanyId); // Adicionado filtro de company_id
+                // Para administradores, não filtramos por company_id ao excluir
+                let query = supabaseClient.from('pedidos').delete().eq('id', id);
+                if (currentUserRole !== 'admin') {
+                    query = query.eq('company_id', currentUserCompanyId);
+                }
+                const { error } = await query;
                 if (error) showAlertError(error, 'Erro ao excluir pedido.');
                 else await renderPedidos();
             }
@@ -943,16 +892,20 @@
             trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
             const dataMinima = trintaDiasAtras.toISOString();
 
-            // Filtra por company_id se não for admin
             let query = supabaseClient
                 .from('pedidos')
                 .select('*, clientes(nome)')
                 .gte('data_solicitacao', dataMinima)
                 .order('data_solicitacao', { ascending: false });
 
+            // IMPORTANTE: Para administradores, NÃO aplicamos o filtro de company_id aqui.
+            // Eles devem ver todos os pedidos.
             if (currentUserRole !== 'admin' && currentUserCompanyId) {
                 query = query.eq('company_id', currentUserCompanyId);
             }
+            // Log da query final antes de executar
+            console.log('[renderRelatorio] Query Supabase para relatório:', query);
+
 
             const { data: pedidos, error } = await query;
 
@@ -962,6 +915,8 @@
                 listaResumoPendencias.innerHTML = '';
                 return;
             }
+
+            console.log('[renderRelatorio] Pedidos carregados para o relatório:', pedidos); // Log dos dados brutos
 
             if (pedidos.length === 0) {
                 corpoTabelaRelatorio.innerHTML = '<tr><td colspan="7">Nenhum pedido encontrado nos últimos 30 dias.</td></tr>';
@@ -983,7 +938,10 @@
             const resumoPendencias = {};
 
             pedidos.forEach(pedido => {
-                if (pedido.status_pagamento === 'Pendente') {
+                // Log detalhado para cada pedido no resumo de pendências
+                console.log(`[Resumo Pendencias] Pedido #${pedido.id}: Status Pagamento = ${pedido.status_pagamento}, Total Final = ${pedido.total_final}`);
+                // Correção: Comparação de status de pagamento insensível a maiúsculas e minúsculas
+                if (pedido.status_pagamento && pedido.status_pagamento.toLowerCase() === 'pendente') {
                     const clienteNome = pedido.clientes ? pedido.clientes.nome : 'Cliente Removido';
                     if (!resumoPendencias[clienteNome]) {
                         resumoPendencias[clienteNome] = { nome: clienteNome, totalPendente: 0, pedidos: [] };
@@ -992,6 +950,8 @@
                     resumoPendencias[clienteNome].pedidos.push(pedido);
                 }
             });
+
+            console.log('[Resumo Pendencias] Objeto resumoPendencias final:', resumoPendencias); // Log do objeto final
 
             const clientesComPendencia = Object.values(resumoPendencias).sort((a, b) => {
                 const nomeA = a.nome.toLowerCase(); 
@@ -1058,7 +1018,7 @@
         const comprovanteContainer = document.getElementById('comprovante-container');
         const fecharModalBtn = document.getElementById('fechar-modal');
         const exportComprovantePngBtn = document.getElementById('export-comprovante-png');
-        const exportComprovantePdfBtn = document.getElementById('export-comprovante-pdf'); // Corrigido o erro de atribuição
+        const exportComprovantePdfBtn = document.getElementById('export-comprovante-pdf'); 
         let currentPedidoParaComprovante = null; // Para guardar os dados do pedido atual do comprovante
 
         async function renderComprovanteModal(pedidoId) {
@@ -1143,227 +1103,6 @@
                 console.error('Erro ao exportar PDF:', error);
                 alert('Ocorreu um erro ao exportar o comprovante como PDF.');
             });
-        });
-
-        // --- LÓGICA DE EMPRESAS (ADMIN APENAS) ---
-        const formEmpresa = document.getElementById('form-empresa');
-        const listaEmpresas = document.getElementById('lista-empresas');
-        const empresaUsuarioSelect = document.getElementById('empresa-usuario'); // Select de empresa na criação de usuário
-
-        async function renderEmpresas() {
-            console.log('[renderEmpresas] Função chamada.'); // Log de entrada
-            if (currentUserRole !== 'admin') {
-                listaEmpresas.innerHTML = '<p>Você não tem permissão para visualizar empresas.</p>';
-                console.log('[renderEmpresas] Usuário não é admin, acesso negado.'); // Log de permissão
-                return;
-            }
-            showLoading(listaEmpresas);
-            console.log('[renderEmpresas] Tentando carregar empresas do Supabase...'); // Log de carregamento
-            const { data, error } = await supabaseClient.from('companies').select('*').order('name', { ascending: true });
-            if (error) {
-                showAlertError(error, 'Não foi possível carregar as empresas.');
-                listaEmpresas.innerHTML = '';
-                console.error('[renderEmpresas] Erro ao carregar empresas:', error); // Log de erro
-                return;
-            }
-            empresasCache = data; // Atualiza o cache de empresas
-            console.log('[renderEmpresas] Empresas carregadas e cache atualizado:', empresasCache); // Log de dados carregados
-            
-            let empresasHtml = '';
-            if (data.length === 0) {
-                empresasHtml = '<p>Nenhuma empresa cadastrada ainda.</p>';
-            } else {
-                empresasHtml = data.map(empresa => `
-                    <div class="item-card">
-                        <div><strong>${empresa.name}</strong><br><small>ID: ${empresa.id}</small></div>
-                        <button class="delete-btn" data-id="${empresa.id}">Excluir</button>
-                    </div>
-                `).join('');
-            }
-            console.log('[renderEmpresas] HTML gerado para empresas:', empresasHtml); // Log do HTML gerado
-            if (listaEmpresas) {
-                listaEmpresas.innerHTML = empresasHtml;
-                console.log('[renderEmpresas] listaEmpresas.innerHTML atualizado.'); // Log de atualização do DOM
-                console.log('[renderEmpresas] listaEmpresas offsetWidth:', listaEmpresas.offsetWidth, 'offsetHeight:', listaEmpresas.offsetHeight); // Log de dimensões
-            } else {
-                console.warn('[renderEmpresas] Elemento listaEmpresas não encontrado no DOM.'); // Aviso se o elemento não for encontrado
-            }
-            updateEmpresaSelectOptions(); // Atualiza o select de empresas para usuários
-        }
-
-        formEmpresa.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (currentUserRole !== 'admin') { alert('Permissão negada.'); return; }
-
-            const btn = document.getElementById('btn-add-empresa');
-            btn.disabled = true;
-            btn.textContent = 'Adicionando...';
-
-            const nomeEmpresa = document.getElementById('nome-empresa').value;
-            
-            // Chamada RPC para criar a empresa e associar o admin
-            const { data, error } = await supabaseClient.rpc('create_new_company', { company_name: nomeEmpresa });
-
-            if (error) {
-                showAlertError(error, 'Erro ao adicionar empresa.');
-            } else {
-                formEmpresa.reset();
-                alert(`Empresa "${nomeEmpresa}" criada com sucesso! ID: ${data.company_id}`);
-                await renderEmpresas();
-            }
-            btn.disabled = false;
-            btn.textContent = 'Adicionar Empresa';
-        });
-
-        listaEmpresas.addEventListener('click', async (e) => {
-            if (e.target.classList.contains('delete-btn') && currentUserRole === 'admin') {
-                if (confirm('Tem certeza que deseja excluir esta empresa? Isso removerá TODOS os dados associados a ela (usuários, clientes, serviços, pedidos)! Esta ação é irreversível!')) {
-                    const id = e.target.dataset.id;
-                    const { error } = await supabaseClient.from('companies').delete().eq('id', id);
-                    if (error) showAlertError(error, 'Erro ao excluir empresa.');
-                    else await renderEmpresas();
-                }
-            }
-        });
-
-        function updateEmpresaSelectOptions() {
-            console.log('[updateEmpresaSelectOptions] Função chamada.'); // Log de entrada
-            console.log('[updateEmpresaSelectOptions] Conteúdo de empresasCache:', empresasCache); // Log do cache
-            // CORREÇÃO: Verifica se o `empresaUsuarioSelect` existe antes de manipular seu `innerHTML`
-            if (empresaUsuarioSelect) {
-                const optionsHtml = '<option value="">Selecione uma empresa</option>' + empresasCache.map(empresa => `<option value="${empresa.id}">${empresa.name}</option>`).join('');
-                empresaUsuarioSelect.innerHTML = optionsHtml;
-                console.log('[updateEmpresaSelectOptions] empresaUsuarioSelect.innerHTML atualizado para:', optionsHtml); // Log do HTML do select
-            } else {
-                console.warn('[updateEmpresaSelectOptions] Elemento empresaUsuarioSelect não encontrado no DOM.'); // Aviso se o elemento não for encontrado
-            }
-        }
-
-
-        // --- LÓGICA DE USUÁRIOS (ADMIN APENAS) ---
-        const formUsuario = document.getElementById('form-usuario');
-        const listaUsuarios = document.getElementById('lista-usuarios');
-
-        async function renderUsuarios() {
-            console.log('[renderUsuarios] Função chamada.'); // Log de entrada
-            if (currentUserRole !== 'admin') {
-                listaUsuarios.innerHTML = '<p>Você não tem permissão para visualizar usuários.</p>';
-                console.log('[renderUsuarios] Usuário não é admin, acesso negado.'); // Log de permissão
-                return;
-            }
-            showLoading(listaUsuarios);
-            console.log('[renderUsuarios] Tentando carregar usuários do Supabase...'); // Log de carregamento
-            const { data, error } = await supabaseClient.from('profiles').select('*, companies(name)').order('email', { ascending: true });
-            if (error) {
-                showAlertError(error, 'Não foi possível carregar os usuários.');
-                listaUsuarios.innerHTML = '';
-                console.error('[renderUsuarios] Erro ao carregar usuários:', error); // Log de erro
-                return;
-            }
-            console.log('[renderUsuarios] Usuários carregados:', data); // Log de dados carregados
-            
-            let usuariosHtml = '';
-            if (data.length === 0) {
-                usuariosHtml = '<p>Nenhum usuário cadastrado ainda.</p>';
-            } else {
-                usuariosHtml = data.map(usuario => `
-                    <div class="item-card">
-                        <div>
-                            <strong>${usuario.email}</strong><br>
-                            <small>Nome: ${usuario.full_name || 'N/A'}</small><br>
-                            <small>Permissão: ${usuario.role}</small><br>
-                            <small>Empresa: ${usuario.companies ? usuario.companies.name : 'N/A'}</small>
-                        </div>
-                        <button class="delete-btn" data-id="${usuario.id}">Excluir</button>
-                    </div>
-                `).join('');
-            }
-            console.log('[renderUsuarios] HTML gerado para usuários:', usuariosHtml); // Log do HTML gerado
-            if (listaUsuarios) {
-                listaUsuarios.innerHTML = usuariosHtml;
-                console.log('[renderUsuarios] listaUsuarios.innerHTML atualizado.'); // Log de atualização do DOM
-                console.log('[renderUsuarios] listaUsuarios offsetWidth:', listaUsuarios.offsetWidth, 'offsetHeight:', listaUsuarios.offsetHeight); // Log de dimensões
-            } else {
-                console.warn('[renderUsuarios] Elemento listaUsuarios não encontrado no DOM.'); // Aviso se o elemento não for encontrado
-            }
-            // Recarrega as empresas para o select de usuário
-            await renderEmpresas(); 
-        }
-
-        formUsuario.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (currentUserRole !== 'admin') { alert('Permissão negada.'); return; }
-
-            const btn = document.getElementById('btn-add-usuario');
-            btn.disabled = true;
-            btn.textContent = 'Processando...';
-
-            const email = document.getElementById('email-usuario').value;
-            const password = document.getElementById('senha-usuario').value;
-            const fullName = document.getElementById('nome-completo-usuario').value;
-            const role = document.getElementById('role-usuario').value;
-            const companyId = document.getElementById('empresa-usuario').value;
-
-            if (!companyId) {
-                alert('Por favor, selecione uma empresa para o novo usuário.');
-                btn.disabled = false;
-                btn.textContent = 'Adicionar Usuário';
-                return;
-            }
-
-            try {
-                // Primeiro, cria o usuário na autenticação do Supabase
-                const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
-                    email: email,
-                    password: password,
-                    email_confirm: true // Opcional: envia email de confirmação
-                });
-
-                if (authError) {
-                    showAlertError(authError, 'Erro ao criar usuário na autenticação.');
-                    btn.disabled = false;
-                    btn.textContent = 'Adicionar Usuário';
-                    return;
-                }
-
-                const userId = authData.user.id;
-
-                // Em seguida, cria o perfil na tabela 'profiles' usando a função RPC
-                const { error: rpcError } = await supabaseClient.rpc('create_profile_for_user', {
-                    user_id: userId,
-                    user_email: email,
-                    user_role: role,
-                    user_company_id: companyId,
-                    full_name: fullName
-                });
-
-                if (rpcError) {
-                    showAlertError(rpcError, 'Erro ao criar perfil do usuário. O usuário na autenticação será removido.');
-                    // Se o perfil falhar, tente reverter a criação do usuário na autenticação
-                    await supabaseClient.auth.admin.deleteUser(userId);
-                    console.error('Usuário de autenticação revertido devido a falha na criação do perfil.');
-                } else {
-                    alert('Usuário e perfil criados com sucesso!');
-                    formUsuario.reset();
-                    await renderUsuarios();
-                }
-            } catch (err) {
-                showAlertError(err, 'Ocorreu um erro inesperado ao criar o usuário.');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Adicionar Usuário';
-            }
-        });
-
-        listaUsuarios.addEventListener('click', async (e) => {
-            if (e.target.classList.contains('delete-btn') && currentUserRole === 'admin') {
-                if (confirm('Tem certeza que deseja excluir este usuário? Isso removerá o acesso e o perfil dele. Esta ação é irreversível!')) {
-                    const id = e.target.dataset.id;
-                    const { error } = await supabaseClient.auth.admin.deleteUser(id); // Exclui da autenticação, o trigger deve cuidar do perfil
-                    if (error) showAlertError(error, 'Erro ao excluir usuário.');
-                    else await renderUsuarios();
-                }
-            }
         });
     }); // Fim do waitForSupabase
 </script>
